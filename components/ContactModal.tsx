@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Send, Phone, Mail, MapPin, MessageCircle, Globe, Clock, CheckCircle2 } from 'lucide-react';
+import { X, Send, Phone, Mail, MapPin, MessageCircle, Globe, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { CONTACT_DATA } from '../constants';
 
 interface ContactModalProps {
@@ -13,6 +13,7 @@ interface ContactModalProps {
 const ContactModal: React.FC<ContactModalProps> = ({ onClose, lang, t, onSendMessage }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [formStep, setFormStep] = useState(0); 
+  const [phoneError, setPhoneError] = useState('');
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', subject: 'Génie Civil & Construction', message: '' });
 
   useEffect(() => {
@@ -20,8 +21,33 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose, lang, t, onSendMes
     return () => clearTimeout(timer);
   }, []);
 
+  const validatePhone = (phone: string) => {
+    const phoneRegex = /^(05|06|07)\d{8}$/;
+    if (!phoneRegex.test(phone)) {
+      return lang === 'ar' 
+        ? 'الرقم غير صحيح. يجب أن يبدأ بـ 05، 06 أو 07 ويتكون من 10 أرقام.' 
+        : 'Numéro invalide. Doit commencer par 05, 06 ou 07 (10 chiffres).';
+    }
+    return '';
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 10) {
+      setFormData({ ...formData, phone: value });
+      setPhoneError('');
+    }
+  };
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const error = validatePhone(formData.phone);
+    if (error) {
+      setPhoneError(error);
+      return;
+    }
+
     setFormStep(1);
     
     // Simulate API Call and actually save message
@@ -91,7 +117,22 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose, lang, t, onSendMes
                   <form className="space-y-8" onSubmit={handleSend}>
                     <div className="grid md:grid-cols-2 gap-8">
                       <input required type="text" placeholder={t.name} className="w-full bg-slate-50 border-2 p-6 rounded-2xl focus:border-yellow-500 outline-none font-bold text-slate-900 placeholder:text-slate-400" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                      <input required type="tel" placeholder={t.phone} className="w-full bg-slate-50 border-2 p-6 rounded-2xl focus:border-yellow-500 outline-none font-bold text-slate-900 placeholder:text-slate-400" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                      <div className="relative">
+                        <input 
+                          required 
+                          type="tel" 
+                          placeholder={t.phone} 
+                          className={`w-full bg-slate-50 border-2 p-6 rounded-2xl outline-none font-bold text-slate-900 placeholder:text-slate-400 ${phoneError ? 'border-red-500 focus:border-red-500' : 'focus:border-yellow-500 border-white/10'}`} 
+                          value={formData.phone} 
+                          onChange={handlePhoneChange} 
+                        />
+                        {phoneError && (
+                          <div className={`mt-2 flex items-center gap-1 text-red-500 text-[11px] font-bold uppercase animate-in fade-in slide-in-from-top-1 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
+                            <AlertCircle size={14} />
+                            <span>{phoneError}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <input required type="email" placeholder={t.email} className="w-full bg-slate-50 border-2 p-6 rounded-2xl focus:border-yellow-500 outline-none font-bold text-slate-900 placeholder:text-slate-400" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                     <select className="w-full bg-slate-50 border-2 p-6 rounded-2xl focus:border-yellow-500 outline-none font-bold text-slate-900" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})}>
