@@ -1,24 +1,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import About from './components/About';
-import Services from './components/Services';
-import ServiceDetail from './components/ServiceDetail';
-import DiscoveryModal from './components/DiscoveryModal';
-import ContactModal from './components/ContactModal';
-import AboutModal from './components/AboutModal';
-import ExpertiseModal from './components/ExpertiseModal';
-import EngagementModal from './components/EngagementModal';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLogin from './components/AdminLogin';
-import FloatingWhatsApp from './components/FloatingWhatsApp';
-import LoadingScreen from './components/LoadingScreen';
-import ScrollToTop from './components/ScrollToTop';
-import HSE from './components/HSE';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import { translations } from './translations';
+import Navbar from './components/Navbar.tsx';
+import Hero from './components/Hero.tsx';
+import About from './components/About.tsx';
+import Services from './components/Services.tsx';
+import ServiceDetail from './components/ServiceDetail.tsx';
+import DiscoveryModal from './components/DiscoveryModal.tsx';
+import ContactModal from './components/ContactModal.tsx';
+import AboutModal from './components/AboutModal.tsx';
+import ExpertiseModal from './components/ExpertiseModal.tsx';
+import EngagementModal from './components/EngagementModal.tsx';
+import AdminDashboard from './components/AdminDashboard.tsx';
+import AdminLogin from './components/AdminLogin.tsx';
+import FloatingWhatsApp from './components/FloatingWhatsApp.tsx';
+import LoadingScreen from './components/LoadingScreen.tsx';
+import ScrollToTop from './components/ScrollToTop.tsx';
+import HSE from './components/HSE.tsx';
+import Contact from './components/Contact.tsx';
+import Footer from './components/Footer.tsx';
+import { translations } from './translations.ts';
 
 export type Language = 'fr' | 'en' | 'ar';
 export type ActivePage = 'home' | 'about' | 'expertise' | 'engagement' | 'contact' | 'admin' | null;
@@ -166,7 +166,6 @@ const App: React.FC = () => {
       <FloatingWhatsApp />
       <ScrollToTop />
 
-      {/* IMMERSIVE PAGES / MODALS */}
       {selectedServiceId && (
         <ServiceDetail 
           service={getSelectedServiceData()} 
