@@ -3,7 +3,6 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
 import Services from './components/Services';
-import Portfolio from './components/Portfolio';
 import ServiceDetail from './components/ServiceDetail';
 import DiscoveryModal from './components/DiscoveryModal';
 import ContactModal from './components/ContactModal';
@@ -159,7 +158,6 @@ const App: React.FC = () => {
         />
         <About t={t.about} lang={lang} />
         <Services t={t.services} lang={lang} onSelect={handleSelectService} />
-        <Portfolio t={t} lang={lang} />
         <HSE t={t.hse} lang={lang} />
         <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />
       </main>
