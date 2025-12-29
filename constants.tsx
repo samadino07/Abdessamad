@@ -40,13 +40,6 @@ export const PROJECTS = [
     category: 'maintenance',
     location: 'Jorf Lasfar',
     image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=800'
-  },
-  {
-    id: 4,
-    title: 'Villa de Luxe',
-    category: 'civil',
-    location: 'Marrakech',
-    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=800'
   }
 ];
 
