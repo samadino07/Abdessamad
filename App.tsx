@@ -44,51 +44,50 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
-  // Robust Environment Variable Fetcher
-  const getEnv = (key: string): string => {
-    try {
-      // 1. Try Vite standard (Build-time injection)
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-        // @ts-ignore
-        return import.meta.env[key];
-      }
-    } catch (e) {}
-
-    try {
-      // 2. Try Node/Vercel standard (Runtime or defined process)
-      // @ts-ignore
-      if (typeof process !== 'undefined' && process.env && process.env[key]) {
-        // @ts-ignore
-        return process.env[key];
-      }
-    } catch (e) {}
-
-    return '';
-  };
-
   const sbConfig = useMemo(() => {
-    // Check with and without VITE_ prefix to be safe
-    const url = getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL');
-    const key = getEnv('VITE_SUPABASE_KEY') || getEnv('SUPABASE_KEY');
+    // CRITICAL: Vite requires literal access for build-time replacement
+    // Do not use dynamic keys like import.meta.env[key]
+    
+    let url = '';
+    let key = '';
+
+    // 1. Try Vite standard (Build-time injection - RECOMMENDED)
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      url = import.meta.env.VITE_SUPABASE_URL || '';
+      // @ts-ignore
+      key = import.meta.env.VITE_SUPABASE_KEY || '';
+    }
+
+    // 2. Fallback to process.env (for some CI/CD environments)
+    if (!url || !key) {
+      try {
+        // @ts-ignore
+        url = (typeof process !== 'undefined' && process.env) ? (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL) : '';
+        // @ts-ignore
+        key = (typeof process !== 'undefined' && process.env) ? (process.env.VITE_SUPABASE_KEY || process.env.SUPABASE_KEY) : '';
+      } catch (e) {}
+    }
 
     if (url && key) {
+      console.log("Supabase linked via Environment Variables");
       return { url, key, source: 'env' };
     }
 
-    // Fallback to local storage for manual dashboard config
+    // 3. Last Fallback: Local Storage (Manual config via Admin)
     const saved = localStorage.getItem('goldgen_supabase_config');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (parsed.url && parsed.key) {
+          console.log("Supabase linked via Local Storage");
           return { ...parsed, source: 'local' };
         }
-      } catch (e) {
-        console.warn("Invalid saved Supabase config");
-      }
+      } catch (e) {}
     }
 
+    console.warn("Supabase not configured. Running in Local Only Mode.");
     return null;
   }, []);
 
@@ -107,15 +106,19 @@ const App: React.FC = () => {
 
   const fetchMessages = useCallback(async () => {
     if (supabase) {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (!error && data) {
-        setMessages(data);
-      } else if (error) {
-        console.error("Supabase fetch error:", error);
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .order('date', { ascending: false });
+        
+        if (!error && data) {
+          setMessages(data);
+        } else if (error) {
+          console.error("Supabase fetch error:", error);
+        }
+      } catch (err) {
+        console.error("Connection error during fetch:", err);
       }
     } else {
       const savedMessages = localStorage.getItem('goldgen_messages');
@@ -134,16 +137,20 @@ const App: React.FC = () => {
 
     let subscription: any;
     if (supabase) {
-      subscription = supabase
-        .channel('schema-db-changes')
-        .on('postgres_changes', { event: '*', table: 'messages' }, () => {
-          fetchMessages();
-        })
-        .subscribe();
+      try {
+        subscription = supabase
+          .channel('schema-db-changes')
+          .on('postgres_changes', { event: '*', table: 'messages' }, () => {
+            fetchMessages();
+          })
+          .subscribe();
+      } catch (e) {
+        console.warn("Realtime subscription failed", e);
+      }
     }
 
     return () => {
-      if (subscription) supabase?.removeChannel(subscription);
+      if (subscription && supabase) supabase.removeChannel(subscription);
     };
   }, [supabase, fetchMessages]);
 
@@ -170,11 +177,12 @@ const App: React.FC = () => {
       const { error } = await supabase.from('messages').insert([newMessageData]);
       if (error) {
         console.error("Cloud insert error:", error);
-        // Fallback local persistence if cloud fails
         const localMsg = { ...newMessageData, id: Date.now().toString() };
         const updated = [localMsg, ...messages];
         setMessages(updated as any);
         localStorage.setItem('goldgen_messages', JSON.stringify(updated));
+      } else {
+        fetchMessages(); // Refresh after success
       }
     } else {
       const localMsg = { ...newMessageData, id: Date.now().toString() };
@@ -186,7 +194,8 @@ const App: React.FC = () => {
 
   const deleteMessage = async (id: string) => {
     if (supabase) {
-      await supabase.from('messages').delete().eq('id', id);
+      const { error } = await supabase.from('messages').delete().eq('id', id);
+      if (!error) fetchMessages();
     } else {
       const updated = messages.filter(m => m.id !== id);
       setMessages(updated);
@@ -196,7 +205,8 @@ const App: React.FC = () => {
 
   const markAsRead = async (id: string) => {
     if (supabase) {
-      await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+      const { error } = await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+      if (!error) fetchMessages();
     } else {
       const updated = messages.map(m => m.id === id ? { ...m, status: 'read' as const } : m);
       setMessages(updated);
