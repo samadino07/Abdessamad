@@ -1,11 +1,28 @@
-<div align="center">
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+# GOLDGEN - Website Deployment Guide
 
-  <h1>Built with AI Studio</h2>
+Ce projet est prêt à être déployé sur **Vercel**. Voici la marche à suivre :
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 1. Mettre le code sur GitHub
+1. Créez un nouveau dépôt sur [GitHub](https://github.com/new).
+2. Initialisez git dans votre dossier local :
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit - GOLDGEN Website"
+   git remote add origin https://github.com/VOTRE_NOM/goldgen.git
+   git push -u origin main
+   ```
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## 2. Déployer sur Vercel
+1. Connectez-vous sur [Vercel.com](https://vercel.com).
+2. Cliquez sur **"Add New"** > **"Project"**.
+3. Importez votre dépôt `goldgen` depuis GitHub.
+4. Laissez les paramètres par défaut et cliquez sur **"Deploy"**.
 
-</div>
+## 3. Configuration de l'API Key (Optionnel)
+Si vous utilisez des fonctionnalités avancées de l'API Gemini, allez dans :
+`Settings > Environment Variables` sur Vercel et ajoutez `API_KEY` avec votre clé.
+
+---
+© 2025 GOLDGEN - Bâtir l'Excellence.
