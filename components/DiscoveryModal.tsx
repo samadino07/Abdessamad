@@ -9,7 +9,8 @@ interface DiscoveryModalProps {
   t: any;
 }
 
-const StatCounter = ({ end, label, suffix = "" }: { end: number, label: string, suffix?: string }) => {
+// Fixed StatCounter by defining it as a React.FC to correctly handle reserved props like 'key'
+const StatCounter: React.FC<{ end: number, label: string, suffix?: string }> = ({ end, label, suffix = "" }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {

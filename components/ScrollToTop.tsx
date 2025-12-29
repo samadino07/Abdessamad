@@ -24,9 +24,9 @@ const ScrollToTop: React.FC = () => {
   return (
     <button
       onClick={scrollToTop}
-      className={`fixed bottom-32 left-8 z-[500] p-4 bg-slate-900 text-yellow-500 rounded-2xl shadow-2xl border border-white/10 hover:bg-yellow-500 hover:text-slate-900 transition-all duration-300 transform ${
+      className={`fixed bottom-52 left-8 z-[490] p-4 bg-slate-900 text-yellow-500 rounded-2xl shadow-2xl border border-white/10 hover:bg-yellow-500 hover:text-slate-900 transition-all duration-300 transform ${
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'
-      }`}
+      } active:scale-90`}
       aria-label="Back to top"
     >
       <ChevronUp size={24} />
