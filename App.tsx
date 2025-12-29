@@ -46,9 +46,18 @@ const App: React.FC = () => {
   
   // Supabase Config Resolution: process.env > LocalStorage
   const sbConfig = useMemo(() => {
-    // Correct way to access env vars in this environment
-    const envUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const envKey = process.env.VITE_SUPABASE_KEY || process.env.SUPABASE_KEY;
+    // Safe access to environment variables
+    let envUrl = '';
+    let envKey = '';
+
+    try {
+      // @ts-ignore
+      envUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+      // @ts-ignore
+      envKey = process.env.VITE_SUPABASE_KEY || process.env.SUPABASE_KEY || '';
+    } catch (e) {
+      console.warn("Environment variables not accessible via process.env");
+    }
 
     if (envUrl && envKey) {
       return { url: envUrl, key: envKey, source: 'env' };
