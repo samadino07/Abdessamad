@@ -162,6 +162,7 @@ export const translations = {
       formTitle: 'Envoyez-nous un message',
       name: 'Nom Complet',
       phone: 'Téléphone',
+      phoneError: 'Numéro invalide. Doit commencer par 05, 06 ou 07 et contenir 10 chiffres.',
       subject: 'Sujet du Projet',
       message: 'Message',
       send: 'Envoyer la demande'
@@ -340,6 +341,7 @@ export const translations = {
       formTitle: 'Send us a message',
       name: 'Full Name',
       phone: 'Phone',
+      phoneError: 'Invalid number. Must start with 05, 06 or 07 and contain 10 digits.',
       subject: 'Project Subject',
       message: 'Message',
       send: 'Send Request'
@@ -427,7 +429,7 @@ export const translations = {
       quote: '"نحن ملتزمون بتقديم أكثر من مجرد خدمات: نحن نقدم ثقة لا تتزعزع ووعداً بالجودة. لن نخيب ظنكم أبداً."',
       goal: 'الهدف',
       goalDesc: 'التميز في كل مهمة، من آسفي إلى جميع أنحاء المغرب.',
-      team: 'الفريق',
+      team: 'الهدف',
       teamDesc: 'مهنيون مؤهلون تأهيلاً عالياً وملتزمون.',
       pillar1: 'أفكار جديدة ومرونة',
       pillar1Desc: 'تكييف سريع وتكامل مستمر لأحدث أساليب العمل.',
@@ -518,6 +520,7 @@ export const translations = {
       formTitle: 'أرسل لنا رسالة',
       name: 'الاسم الكامل',
       phone: 'الهاتف',
+      phoneError: 'الرقم غير صحيح. يجب أن يبدأ بـ 05، 06 أو 07 ويتكون من 10 أرقام.',
       subject: 'موضوع المشروع',
       message: 'الرسالة',
       send: 'إرسال الطلب'

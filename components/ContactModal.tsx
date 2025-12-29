@@ -24,9 +24,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose, lang, t, onSendMes
   const validatePhone = (phone: string) => {
     const phoneRegex = /^(05|06|07)\d{8}$/;
     if (!phoneRegex.test(phone)) {
-      return lang === 'ar' 
-        ? 'الرقم غير صحيح. يجب أن يبدأ بـ 05، 06 أو 07 ويتكون من 10 أرقام.' 
-        : 'Numéro invalide. Doit commencer par 05, 06 ou 07 (10 chiffres).';
+      return t.phoneError;
     }
     return '';
   };
@@ -35,7 +33,11 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose, lang, t, onSendMes
     const value = e.target.value.replace(/\D/g, '');
     if (value.length <= 10) {
       setFormData({ ...formData, phone: value });
-      setPhoneError('');
+      if (value.length > 0 && !/^(05|06|07)/.test(value)) {
+        setPhoneError(t.phoneError);
+      } else {
+        setPhoneError('');
+      }
     }
   };
 
@@ -121,6 +123,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose, lang, t, onSendMes
                         <input 
                           required 
                           type="tel" 
+                          inputMode="numeric"
                           placeholder={t.phone} 
                           className={`w-full bg-slate-50 border-2 p-6 rounded-2xl outline-none font-bold text-slate-900 placeholder:text-slate-400 ${phoneError ? 'border-red-500 focus:border-red-500' : 'focus:border-yellow-500 border-white/10'}`} 
                           value={formData.phone} 

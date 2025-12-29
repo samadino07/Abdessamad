@@ -59,12 +59,12 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
-      isScrolled ? 'bg-white shadow-lg py-4' : 'bg-transparent py-6'
+      isScrolled ? 'bg-white shadow-lg py-3 md:py-4' : 'bg-transparent py-4 md:py-6'
     }`}>
-      <div className="container mx-auto px-6 flex justify-between items-center">
-        <button onClick={() => onNavigate('home')} className="flex items-center gap-3 group">
-          <Logo className="h-10 w-10 md:h-12 md:w-12" />
-          <span className={`text-2xl md:text-3xl font-black font-display tracking-tighter transition-colors ${
+      <div className="container mx-auto px-4 md:px-6 flex justify-between items-center">
+        <button onClick={() => onNavigate('home')} className="flex items-center gap-2 md:gap-3 group">
+          <Logo className="h-9 w-9 md:h-12 md:w-12" />
+          <span className={`text-xl md:text-3xl font-black font-display tracking-tighter transition-colors ${
             isScrolled ? 'text-slate-900' : 'text-white'
           }`}>GOLDGEN</span>
         </button>
@@ -150,29 +150,29 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Menu"
         >
-          {isMobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
+          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
       {/* Mobile Nav Overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-white shadow-2xl py-6 px-6 space-y-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-white shadow-2xl py-6 px-4 space-y-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-4 duration-300">
           {isAdmin && (
             <button
               onClick={() => { onNavigate('admin'); setIsMobileMenuOpen(false); }}
-              className="w-full flex items-center justify-center gap-2 bg-slate-900 text-yellow-500 py-3 rounded-xl font-black uppercase text-sm"
+              className="w-full flex items-center justify-center gap-2 bg-slate-900 text-yellow-500 py-3 rounded-xl font-black uppercase text-xs"
             >
-              <ShieldCheck size={18} />
+              <ShieldCheck size={16} />
               Dashboard Admin
             </button>
           )}
-          <div className="flex justify-center space-x-4 mb-6 p-2 bg-slate-50 rounded-xl">
+          <div className="flex justify-center space-x-2 mb-4 p-1.5 bg-slate-50 rounded-xl">
              {langs.map((l) => (
               <button
                 key={l.code}
                 onClick={() => { onLangChange(l.code); setIsMobileMenuOpen(false); }}
-                className={`px-4 py-2 rounded-lg text-sm font-black transition-all ${
-                  currentLang === l.code ? 'bg-yellow-500 text-slate-900' : 'text-slate-500'
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-black transition-all ${
+                  currentLang === l.code ? 'bg-yellow-500 text-slate-900 shadow-sm' : 'text-slate-500'
                 }`}
               >
                 {l.label}
@@ -183,14 +183,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
             <button
               key={link.name}
               onClick={() => { onNavigate(link.page); setIsMobileMenuOpen(false); }}
-              className={`block w-full font-bold text-slate-800 text-lg py-3 hover:text-yellow-500 transition-colors ${currentLang === 'ar' ? 'text-right' : 'text-left'}`}
+              className={`block w-full font-bold text-slate-800 text-base py-3 hover:text-yellow-500 transition-colors ${currentLang === 'ar' ? 'text-right' : 'text-left'}`}
             >
               {link.name}
             </button>
           ))}
           
           <div className="pt-4 border-t border-slate-100">
-            <p className={`text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ${currentLang === 'ar' ? 'text-right' : ''}`}>
+            <p className={`text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4 ${currentLang === 'ar' ? 'text-right' : ''}`}>
               {t.chooseNum}
             </p>
             <div className="grid grid-cols-1 gap-3">
@@ -198,15 +198,15 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
                 <a
                   key={idx}
                   href={`tel:${phone.number.replace(/\s/g, '')}`}
-                  className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl group active:bg-yellow-500 transition-colors ${
+                  className={`flex items-center justify-between p-4 bg-slate-50 rounded-xl group active:bg-yellow-500 transition-colors ${
                     currentLang === 'ar' ? 'flex-row-reverse' : ''
                   }`}
                 >
                   <div className={currentLang === 'ar' ? 'text-right' : 'text-left'}>
-                    <p className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider">{phone.label}</p>
-                    <p className="text-lg font-black text-slate-900 group-active:text-slate-900">{phone.number}</p>
+                    <p className="text-[8px] font-bold text-yellow-600 uppercase tracking-wider">{phone.label}</p>
+                    <p className="text-base font-black text-slate-900 group-active:text-slate-900">{phone.number}</p>
                   </div>
-                  <Phone size={20} className="text-yellow-500 group-active:text-slate-900" />
+                  <Phone size={18} className="text-yellow-500 group-active:text-slate-900" />
                 </a>
               ))}
             </div>
