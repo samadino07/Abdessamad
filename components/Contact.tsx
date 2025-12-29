@@ -65,19 +65,6 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
               </div>
               <div className="space-y-4">
                 <a 
-                  href={`https://wa.me/212${CONTACT_DATA.whatsapp.substring(1)}`} 
-                  className={`flex items-center space-x-4 md:space-x-6 p-4 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl hover:bg-yellow-500 group transition-all ${lang === 'ar' ? 'flex-row-reverse space-x-reverse' : ''}`}
-                >
-                  <MessageCircle size={24} className="text-yellow-500 group-hover:text-slate-900 shrink-0" />
-                  <div>
-                    <p className="text-[8px] md:text-[10px] font-black text-yellow-500 group-hover:text-slate-900 uppercase mb-0.5 md:mb-1">
-                      {lang === 'ar' ? 'واتساب / هاتف (عبد الصمد)' : 'WhatsApp / Tél (Abdessamad)'}
-                    </p>
-                    <p className="text-lg md:text-xl font-bold text-white group-hover:text-slate-900">{CONTACT_DATA.whatsapp}</p>
-                  </div>
-                </a>
-
-                <a 
                   href={`tel:${CONTACT_DATA.telSecondary.replace(/\s/g, '')}`} 
                   className={`flex items-center space-x-4 md:space-x-6 p-4 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl hover:bg-yellow-500 group transition-all ${lang === 'ar' ? 'flex-row-reverse space-x-reverse' : ''}`}
                 >
@@ -87,6 +74,19 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
                       {lang === 'ar' ? 'الهاتف (عبد العالي)' : 'Tél (Abdelali)'}
                     </p>
                     <p className="text-lg md:text-xl font-bold text-white group-hover:text-slate-900">{CONTACT_DATA.telSecondary}</p>
+                  </div>
+                </a>
+
+                <a 
+                  href={`https://wa.me/212${CONTACT_DATA.whatsapp.substring(1)}`} 
+                  className={`flex items-center space-x-4 md:space-x-6 p-4 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl hover:bg-yellow-500 group transition-all ${lang === 'ar' ? 'flex-row-reverse space-x-reverse' : ''}`}
+                >
+                  <MessageCircle size={24} className="text-yellow-500 group-hover:text-slate-900 shrink-0" />
+                  <div>
+                    <p className="text-[8px] md:text-[10px] font-black text-yellow-500 group-hover:text-slate-900 uppercase mb-0.5 md:mb-1">
+                      {lang === 'ar' ? 'واتساب / هاتف (عبد الصمد)' : 'WhatsApp / Tél (Abdessamad)'}
+                    </p>
+                    <p className="text-lg md:text-xl font-bold text-white group-hover:text-slate-900">{CONTACT_DATA.whatsapp}</p>
                   </div>
                 </a>
 

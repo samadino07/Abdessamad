@@ -67,7 +67,7 @@ export const translations = {
     about: {
       title: 'Notre Vision :',
       subtitle: 'La Force de la Jeunesse et de l\'Expérience',
-      desc: 'Fondée par deux jeunes entrepreneurs marocains, Abdessamad Amraoui et Abdelali Tounani, STE GOLDGEN est née d\'une vision audacieuse : devenir une référence nationale dans le secteur du BTP et des services associés.',
+      desc: 'Fondée par deux jeunes entrepreneurs marocains, Abdelali Tounani et Abdessamad Amraoui, STE GOLDGEN est née d\'une vision audacieuse : devenir une référence nationale dans le secteur du BTP et des services associés.',
       quote: '"Nous nous engageons à offrir plus que des services : nous offrons une confiance inébranlable et la promesse de la qualité. Nous ne vous ferons jamais honte."',
       goal: 'Objectif',
       goalDesc: 'Excellence dans chaque mission, de Safi à tout le Maroc.',
@@ -246,7 +246,7 @@ export const translations = {
     about: {
       title: 'Our Vision:',
       subtitle: 'The Strength of Youth and Experience',
-      desc: 'Founded by two young Moroccan entrepreneurs, Abdessamad Amraoui and Abdelali Tounani, STE GOLDGEN was born from a bold vision: to become a national reference in the construction sector.',
+      desc: 'Founded by two young Moroccan entrepreneurs, Abdelali Tounani and Abdessamad Amraoui, STE GOLDGEN was born from a bold vision: to become a national reference in the construction sector.',
       quote: '"We are committed to offering more than just services: we offer unwavering trust and the promise of quality. We will never let you down."',
       goal: 'Goal',
       goalDesc: 'Excellence in every mission, from Safi to all of Morocco.',
@@ -425,7 +425,7 @@ export const translations = {
     about: {
       title: 'رؤيتنا:',
       subtitle: 'قوة الشباب والخبرة',
-      desc: 'تأسست شركة جولد جين على يد مقاولين مغربيين شابين، عبد الصمد أمراوي وعبد العالي التوناني، من رؤية طموحة: أن تصبح مرجعاً وطنياً في قطاع البناء والخدمات المرتبطة به.',
+      desc: 'تأسست شركة جولد جين على يد مقاولين مغربيين شابين، عبد العالي التوناني وعبد الصمد أمراوي، من رؤية طموحة: أن تصبح مرجعاً وطنياً في قطاع البناء والخدمات المرتبطة به.',
       quote: '"نحن ملتزمون بتقديم أكثر من مجرد خدمات: نحن نقدم ثقة لا تتزعزع ووعداً بالجودة. لن نخيب ظنكم أبداً."',
       goal: 'الهدف',
       goalDesc: 'التميز في كل مهمة، من آسفي إلى جميع أنحاء المغرب.',

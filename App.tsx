@@ -19,6 +19,7 @@ import ScrollToTop from './components/ScrollToTop';
 import HSE from './components/HSE';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
+import FounderSpotlight from './components/FounderSpotlight';
 import { translations } from './translations';
 import { createClient } from '@supabase/supabase-js';
 
@@ -44,14 +45,26 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
+  // Intersection Observer for reveal animations
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const elements = document.querySelectorAll('.reveal');
+    elements.forEach(el => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [activePage, selectedServiceId]);
+
   const sbConfig = useMemo(() => {
-    // CRITICAL: Vite requires literal access for build-time replacement
-    // Do not use dynamic keys like import.meta.env[key]
-    
     let url = '';
     let key = '';
 
-    // 1. Try Vite standard (Build-time injection - RECOMMENDED)
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env) {
       // @ts-ignore
@@ -60,7 +73,6 @@ const App: React.FC = () => {
       key = import.meta.env.VITE_SUPABASE_KEY || '';
     }
 
-    // 2. Fallback to process.env (for some CI/CD environments)
     if (!url || !key) {
       try {
         // @ts-ignore
@@ -71,23 +83,19 @@ const App: React.FC = () => {
     }
 
     if (url && key) {
-      console.log("Supabase linked via Environment Variables");
       return { url, key, source: 'env' };
     }
 
-    // 3. Last Fallback: Local Storage (Manual config via Admin)
     const saved = localStorage.getItem('goldgen_supabase_config');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (parsed.url && parsed.key) {
-          console.log("Supabase linked via Local Storage");
           return { ...parsed, source: 'local' };
         }
       } catch (e) {}
     }
 
-    console.warn("Supabase not configured. Running in Local Only Mode.");
     return null;
   }, []);
 
@@ -114,12 +122,8 @@ const App: React.FC = () => {
         
         if (!error && data) {
           setMessages(data);
-        } else if (error) {
-          console.error("Supabase fetch error:", error);
         }
-      } catch (err) {
-        console.error("Connection error during fetch:", err);
-      }
+      } catch (err) {}
     } else {
       const savedMessages = localStorage.getItem('goldgen_messages');
       if (savedMessages) {
@@ -134,24 +138,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
     fetchMessages();
-
-    let subscription: any;
-    if (supabase) {
-      try {
-        subscription = supabase
-          .channel('schema-db-changes')
-          .on('postgres_changes', { event: '*', table: 'messages' }, () => {
-            fetchMessages();
-          })
-          .subscribe();
-      } catch (e) {
-        console.warn("Realtime subscription failed", e);
-      }
-    }
-
-    return () => {
-      if (subscription && supabase) supabase.removeChannel(subscription);
-    };
   }, [supabase, fetchMessages]);
 
   useEffect(() => {
@@ -176,13 +162,12 @@ const App: React.FC = () => {
     if (supabase) {
       const { error } = await supabase.from('messages').insert([newMessageData]);
       if (error) {
-        console.error("Cloud insert error:", error);
         const localMsg = { ...newMessageData, id: Date.now().toString() };
         const updated = [localMsg, ...messages];
         setMessages(updated as any);
         localStorage.setItem('goldgen_messages', JSON.stringify(updated));
       } else {
-        fetchMessages(); // Refresh after success
+        fetchMessages();
       }
     } else {
       const localMsg = { ...newMessageData, id: Date.now().toString() };
@@ -238,7 +223,7 @@ const App: React.FC = () => {
   const unreadCount = messages.filter(m => m.status === 'new').length;
 
   return (
-    <div className={`min-h-screen bg-white selection:bg-yellow-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
+    <div className={`min-h-screen bg-slate-950 selection:bg-yellow-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <LoadingScreen />
       
       <Navbar 
@@ -251,10 +236,26 @@ const App: React.FC = () => {
       
       <main className="relative">
         <Hero t={t.hero} lang={lang} onDiscover={() => setIsDiscoveryOpen(true)} onNavigate={navigateTo} />
-        <About t={t.about} lang={lang} />
-        <Services t={t.services} lang={lang} onSelect={handleSelectService} />
-        <HSE t={t.hse} lang={lang} />
-        <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />
+        
+        <div className="reveal">
+          <About t={t.about} lang={lang} />
+        </div>
+
+        <div className="reveal">
+          <Services t={t.services} lang={lang} onSelect={handleSelectService} />
+        </div>
+
+        <div className="reveal">
+          <FounderSpotlight t={t.about} lang={lang} />
+        </div>
+
+        <div className="reveal">
+          <HSE t={t.hse} lang={lang} />
+        </div>
+
+        <div className="reveal">
+          <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />
+        </div>
       </main>
 
       <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={unreadCount} />

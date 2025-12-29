@@ -53,8 +53,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
   ];
 
   const phoneNumbers = [
-    { label: 'Abdessamad', number: CONTACT_DATA.whatsapp },
-    { label: 'Abdelali', number: CONTACT_DATA.telSecondary },
+    { label: currentLang === 'ar' ? 'عبد العالي' : 'Abdelali', number: CONTACT_DATA.telSecondary },
+    { label: currentLang === 'ar' ? 'عبد الصمد' : 'Abdessamad', number: CONTACT_DATA.whatsapp },
   ];
 
   return (
