@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Target, Users, ShieldCheck, Zap } from 'lucide-react';
 
@@ -65,9 +64,10 @@ const About: React.FC<AboutProps> = ({ t, lang }) => {
             </div>
             <div className="space-y-6">
               <img 
-                src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=800" 
+                src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=75&w=800" 
                 alt="Architecture Excellence" 
                 className="w-full h-80 object-cover rounded-3xl shadow-2xl"
+                loading="lazy"
               />
               <div className="bg-yellow-500 p-8 rounded-3xl flex flex-col items-center justify-center text-center">
                 <span className="text-5xl font-black text-slate-900 mb-2">100%</span>

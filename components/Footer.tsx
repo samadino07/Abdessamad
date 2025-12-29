@@ -2,7 +2,7 @@
 import React from 'react';
 import { CONTACT_DATA } from '../constants';
 import { ActivePage } from '../App';
-import { Shield } from 'lucide-react';
+import { Shield, Facebook, Linkedin, Instagram } from 'lucide-react';
 
 interface FooterProps {
   t: any;
@@ -13,6 +13,12 @@ interface FooterProps {
 
 const Footer: React.FC<FooterProps> = ({ t, lang, onNavigate, unreadCount = 0 }) => {
   const currentYear = new Date().getFullYear();
+
+  const socialLinks = [
+    { icon: <Facebook size={18} />, url: 'https://www.facebook.com', label: 'Facebook' },
+    { icon: <Linkedin size={18} />, url: 'https://www.linkedin.com', label: 'LinkedIn' },
+    { icon: <Instagram size={18} />, url: 'https://www.instagram.com', label: 'Instagram' },
+  ];
 
   return (
     <footer className="bg-slate-950 pt-20 pb-10">
@@ -26,10 +32,17 @@ const Footer: React.FC<FooterProps> = ({ t, lang, onNavigate, unreadCount = 0 })
               {t.desc}
             </p>
             <div className={`flex space-x-4 ${lang === 'ar' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              {['FB', 'LN', 'IG'].map((social) => (
-                <div key={social} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-xs font-bold text-white hover:bg-yellow-500 hover:text-slate-900 transition-colors cursor-pointer">
-                  {social}
-                </div>
+              {socialLinks.map((social, idx) => (
+                <a 
+                  key={idx} 
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-11 h-11 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-yellow-500 hover:text-slate-900 transition-all hover:-translate-y-1 shadow-lg active:scale-90"
+                  aria-label={social.label}
+                >
+                  {social.icon}
+                </a>
               ))}
             </div>
           </div>

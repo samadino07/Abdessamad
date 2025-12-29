@@ -6,6 +6,7 @@ export const translations = {
       home: 'Accueil',
       about: 'À Propos',
       expertise: 'Expertise',
+      projects: 'Projets',
       engagement: 'Engagement',
       contact: 'Contact',
       call: 'Appeler',
@@ -28,10 +29,30 @@ export const translations = {
         standardVal: 'Zéro Accident'
       }
     },
+    portfolio: {
+      label: 'Nos Réalisations',
+      title: 'Projets qui nous rendent fiers',
+      desc: 'Découvrez une sélection de nos travaux récents à travers le Royaume.',
+      all: 'Tous',
+      civil: 'Génie Civil',
+      decor: 'Aménagement',
+      maint: 'Maintenance'
+    },
+    chatbot: {
+      title: 'Assistant IA GOLDGEN',
+      welcome: 'Bonjour ! Comment puis-je vous aider aujourd\'hui ?',
+      placeholder: 'Posez votre question...',
+      error: 'Désolé, j\'ai rencontré une erreur. Réessayez.',
+      system: 'Tu es l\'assistant IA de GOLDGEN, une entreprise de BTP basée à Safi, Maroc. Réponds aux questions sur nos services (Génie Civil, Aménagement, Maintenance, Fournitures) de manière professionnelle.'
+    },
+    testimonials: {
+      title: 'Ils nous font confiance',
+      subtitle: 'La satisfaction client est notre meilleure publicité.'
+    },
     discovery: {
       title: 'L\'Expérience GOLDGEN',
       subtitle: 'Bienvenue dans le futur du BTP au Maroc',
-      intro: 'Plus qu\'une entreprise, GOLDGEN est un engagement vers l\'innovation et la rigueur technique.',
+      intro: 'Plus qu\'une entreprise, GOLDGEN est un commitment vers l\'innovation et la rigueur technique.',
       pillarsTitle: 'Nos Fondements',
       hseTitle: 'Sécurité & Environnement',
       hseDesc: 'Nous appliquons les normes internationales les plus strictes pour garantir la sécurité de nos équipes et la pérennité de vos projets.',
@@ -163,6 +184,7 @@ export const translations = {
       home: 'Home',
       about: 'About Us',
       expertise: 'Expertise',
+      projects: 'Projects',
       engagement: 'Engagement',
       contact: 'Contact',
       call: 'Call',
@@ -184,6 +206,26 @@ export const translations = {
         standard: 'HSE Standard',
         standardVal: 'Zero Accident'
       }
+    },
+    portfolio: {
+      label: 'Our Achievements',
+      title: 'Projects We Are Proud Of',
+      desc: 'Discover a selection of our recent work across the Kingdom.',
+      all: 'All',
+      civil: 'Civil Eng.',
+      decor: 'Fit-out',
+      maint: 'Maintenance'
+    },
+    chatbot: {
+      title: 'GOLDGEN AI Assistant',
+      welcome: 'Hello! How can I help you today?',
+      placeholder: 'Ask your question...',
+      error: 'Sorry, I encountered an error. Try again.',
+      system: 'You are the AI assistant for GOLDGEN, a construction company in Safi, Morocco. Answer questions about our services professionally.'
+    },
+    testimonials: {
+      title: 'They Trust Us',
+      subtitle: 'Customer satisfaction is our best advertising.'
     },
     discovery: {
       title: 'The GOLDGEN Experience',
@@ -320,6 +362,7 @@ export const translations = {
       home: 'الرئيسية',
       about: 'من نحن',
       expertise: 'خبراتنا',
+      projects: 'مشاريعنا',
       engagement: 'التزامنا',
       contact: 'اتصل بنا',
       call: 'اتصال',
@@ -341,6 +384,26 @@ export const translations = {
         standard: 'معيار السلامة',
         standardVal: 'صفر حوادث'
       }
+    },
+    portfolio: {
+      label: 'إنجازاتنا',
+      title: 'مشاريع نفتخر بها',
+      desc: 'اكتشف مجموعة مختارة من أعمالنا الأخيرة عبر ربوع المملكة.',
+      all: 'الكل',
+      civil: 'الهندسة المدنية',
+      decor: 'التهيئة',
+      maint: 'الصيانة'
+    },
+    chatbot: {
+      title: 'مساعد جولد جين الذكي',
+      welcome: 'مرحباً! كيف يمكنني مساعدتك اليوم؟',
+      placeholder: 'اطرح سؤالك هنا...',
+      error: 'عذراً، حدث خطأ ما. حاول مرة أخرى.',
+      system: 'أنت المساعد الذكي لشركة جولد جين للبناء في آسفي، المغرب. أجب على الأسئلة باحترافية عن خدماتنا.'
+    },
+    testimonials: {
+      title: 'ثقتكم نجاحنا',
+      subtitle: 'رضا زبنائنا هو أفضل وسيلة للدعاية لنا.'
     },
     discovery: {
       title: 'تجربة جولد جين',

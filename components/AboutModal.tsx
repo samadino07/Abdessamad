@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, Award, Target, Users, ArrowDown, ShieldCheck, Zap } from 'lucide-react';
 import Logo from './Logo';
@@ -32,7 +31,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose, lang, t }) => {
         {/* HERO SECTION ABOUT */}
         <section className="relative min-h-[70vh] flex items-center justify-center bg-slate-900 overflow-hidden">
           <img 
-            src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=2000" 
+            src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=75&w=1600" 
             className="absolute inset-0 w-full h-full object-cover opacity-40"
             alt="Vision"
           />
@@ -65,7 +64,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose, lang, t }) => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-4">
-                      <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=400" className="rounded-[40px] shadow-2xl h-64 w-full object-cover" alt="History 1" />
+                      <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=75&w=500" className="rounded-[40px] shadow-2xl h-64 w-full object-cover" alt="History 1" loading="lazy" />
                       <div className="bg-yellow-500 p-8 rounded-[40px] text-center flex flex-col items-center justify-center h-48">
                          <span className="text-4xl font-black text-slate-900">2023</span>
                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">Lancement</span>
@@ -76,7 +75,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose, lang, t }) => {
                          <span className="text-4xl font-black text-yellow-500">100%</span>
                          <span className="text-[10px] font-black uppercase tracking-widest text-white">Engagement</span>
                       </div>
-                      <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=400" className="rounded-[40px] shadow-2xl h-64 w-full object-cover" alt="History 2" />
+                      <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=75&w=500" className="rounded-[40px] shadow-2xl h-64 w-full object-cover" alt="History 2" loading="lazy" />
                    </div>
                 </div>
               </div>

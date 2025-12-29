@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar.tsx';
 import Hero from './components/Hero.tsx';
 import About from './components/About.tsx';
 import Services from './components/Services.tsx';
+import Portfolio from './components/Portfolio.tsx';
 import ServiceDetail from './components/ServiceDetail.tsx';
 import DiscoveryModal from './components/DiscoveryModal.tsx';
 import ContactModal from './components/ContactModal.tsx';
@@ -13,6 +13,7 @@ import EngagementModal from './components/EngagementModal.tsx';
 import AdminDashboard from './components/AdminDashboard.tsx';
 import AdminLogin from './components/AdminLogin.tsx';
 import FloatingWhatsApp from './components/FloatingWhatsApp.tsx';
+import AIChatbot from './components/AIChatbot.tsx';
 import LoadingScreen from './components/LoadingScreen.tsx';
 import ScrollToTop from './components/ScrollToTop.tsx';
 import HSE from './components/HSE.tsx';
@@ -123,10 +124,10 @@ const App: React.FC = () => {
     if (!service) return null;
 
     const serviceImages = {
-      civil: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=800',
-      amenagement: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=800',
-      maintenance: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=800',
-      fourniture: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800',
+      civil: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=75&w=1200',
+      amenagement: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=75&w=1200',
+      maintenance: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=75&w=1200',
+      fourniture: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=75&w=1200',
     };
 
     return {
@@ -146,6 +147,7 @@ const App: React.FC = () => {
         onLangChange={setLang} 
         t={t.nav} 
         onNavigate={navigateTo}
+        isAdmin={isAdminAuthenticated}
       />
       
       <main className="relative">
@@ -157,6 +159,7 @@ const App: React.FC = () => {
         />
         <About t={t.about} lang={lang} />
         <Services t={t.services} lang={lang} onSelect={handleSelectService} />
+        <Portfolio t={t} lang={lang} />
         <HSE t={t.hse} lang={lang} />
         <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />
       </main>
@@ -164,6 +167,7 @@ const App: React.FC = () => {
       <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={unreadCount} />
 
       <FloatingWhatsApp />
+      <AIChatbot lang={lang} t={t} />
       <ScrollToTop />
 
       {selectedServiceId && (

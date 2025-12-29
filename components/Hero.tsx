@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ActivePage } from '../App';
 
@@ -14,9 +13,11 @@ const Hero: React.FC<HeroProps> = ({ t, lang, onDiscover, onNavigate }) => {
     <section className="relative min-h-screen flex items-center overflow-hidden bg-slate-900">
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=2000"
+          src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=75&w=1600"
           alt="Construction Site"
           className="w-full h-full object-cover opacity-40 scale-105 animate-[pulse_10s_ease-in-out_infinite]"
+          // @ts-ignore - fetchPriority is supported in modern browsers
+          fetchPriority="high"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent"></div>
       </div>

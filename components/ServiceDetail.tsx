@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, CheckCircle2, PhoneCall, ArrowRight, ShieldCheck, Zap, Target, ArrowLeft } from 'lucide-react';
 
@@ -132,7 +131,7 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({ service, onClose, lang, t
             <div className="lg:col-span-4 space-y-8">
               {/* HSE Engagement Sidebar */}
               <div className="bg-slate-900 p-10 rounded-[40px] text-white relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                  <ShieldCheck className="text-yellow-500 mb-6" size={48} />
                  <h4 className="text-2xl font-black mb-4">{t.guarantees}</h4>
                  <ul className="space-y-4">
@@ -166,9 +165,10 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({ service, onClose, lang, t
               {/* Image highlight */}
               <div className="rounded-[40px] overflow-hidden h-64 shadow-xl">
                  <img 
-                  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=800" 
+                  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=75&w=800" 
                   className="w-full h-full object-cover" 
                   alt="Quality Assurance"
+                  loading="lazy"
                  />
               </div>
             </div>

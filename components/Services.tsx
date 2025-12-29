@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HardHat, PaintBucket, Flower, Briefcase, PlusCircle } from 'lucide-react';
 
@@ -17,10 +16,10 @@ const Services: React.FC<ServicesProps> = ({ t, lang, onSelect }) => {
   };
 
   const serviceImages = {
-    civil: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=800',
-    amenagement: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=800',
-    maintenance: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=800',
-    fourniture: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800',
+    civil: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=75&w=600',
+    amenagement: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=75&w=600',
+    maintenance: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=75&w=600',
+    fourniture: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=75&w=600',
   };
 
   return (
@@ -47,6 +46,7 @@ const Services: React.FC<ServicesProps> = ({ t, lang, onSelect }) => {
                   src={serviceImages[key as keyof typeof serviceImages]} 
                   alt={service.title} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/20 transition-colors"></div>
                 <div className={`absolute top-4 w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-slate-900 shadow-lg ${lang === 'ar' ? 'right-4' : 'left-4'}`}>

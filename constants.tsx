@@ -9,7 +9,6 @@ export const COLORS = {
   light: '#F8FAFC',
 };
 
-// Lien direct vers le logo PNG
 export const LOGO_PATH = 'https://i.ibb.co/qL15kCPJ/logo-goldgen.png'; 
 
 export const CONTACT_DATA: ContactInfo = {
@@ -19,6 +18,52 @@ export const CONTACT_DATA: ContactInfo = {
   address: 'N° 4 IMM 3 LOTISS LAMYAA, Safi',
   rc: '13763 (Safi)'
 };
+
+export const PROJECTS = [
+  {
+    id: 1,
+    title: 'Résidence Lamy-Safi',
+    category: 'civil',
+    location: 'Safi',
+    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: 2,
+    title: 'Showroom Automobile',
+    category: 'amenagement',
+    location: 'Casablanca',
+    image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: 3,
+    title: 'Parc Industriel OCP',
+    category: 'maintenance',
+    location: 'Jorf Lasfar',
+    image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: 4,
+    title: 'Villa de Luxe',
+    category: 'civil',
+    location: 'Marrakech',
+    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=800'
+  }
+];
+
+export const TESTIMONIALS = [
+  {
+    name: 'Youssef El Alami',
+    role: 'Chef de Projet',
+    content: 'GOLDGEN a su répondre à nos exigences techniques avec une rapidité impressionnante. Leur équipe est très professionnelle.',
+    avatar: 'https://i.pravatar.cc/150?u=youssef'
+  },
+  {
+    name: 'Sarah Benani',
+    role: 'Architecte d’intérieur',
+    content: 'Une finition irréprochable. C’est rare de trouver des entreprises aussi rigoureuses sur les détails au Maroc.',
+    avatar: 'https://i.pravatar.cc/150?u=sarah'
+  }
+];
 
 export const SERVICES: ServiceItem[] = [
   {

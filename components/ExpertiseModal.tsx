@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, HardHat, PaintBucket, Flower, Briefcase, ChevronRight } from 'lucide-react';
 
@@ -25,10 +24,10 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ onClose, lang, t, onSel
   };
 
   const serviceImages = {
-    civil: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=1200',
-    amenagement: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=1200',
-    maintenance: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=1200',
-    fourniture: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200',
+    civil: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=75&w=800',
+    amenagement: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=75&w=800',
+    maintenance: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=75&w=800',
+    fourniture: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=75&w=800',
   };
 
   return (
@@ -61,6 +60,7 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ onClose, lang, t, onSel
                           src={serviceImages[key as keyof typeof serviceImages]} 
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
                           alt={service.title} 
+                          loading="lazy"
                         />
                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <div className="bg-yellow-500 text-slate-900 p-4 rounded-full font-black uppercase text-xs tracking-widest">{t.learnMore}</div>

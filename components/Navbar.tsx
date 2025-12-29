@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ChevronDown, Phone } from 'lucide-react';
+import { Menu, X, ChevronDown, Phone, ShieldCheck } from 'lucide-react';
 import { Language, ActivePage } from '../App';
 import { CONTACT_DATA } from '../constants';
 import Logo from './Logo';
@@ -10,9 +10,10 @@ interface NavbarProps {
   onLangChange: (lang: Language) => void;
   t: any;
   onNavigate: (page: ActivePage) => void;
+  isAdmin?: boolean;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigate }) => {
+const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigate, isAdmin }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCallMenuOpen, setIsCallMenuOpen] = useState(false);
@@ -39,7 +40,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
   }, []);
 
   const navLinks: { name: string; page: ActivePage }[] = [
-    { name: t.home, page: 'home' },
     { name: t.about, page: 'about' },
     { name: t.expertise, page: 'expertise' },
     { name: t.engagement, page: 'engagement' },
@@ -71,6 +71,16 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
 
         {/* Desktop Nav */}
         <div className="hidden lg:flex items-center space-x-8">
+          {isAdmin && (
+            <button
+              onClick={() => onNavigate('admin')}
+              className="flex items-center gap-2 bg-yellow-500 text-slate-900 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest animate-pulse"
+            >
+              <ShieldCheck size={14} />
+              Admin
+            </button>
+          )}
+          
           {navLinks.map((link) => (
             <button
               key={link.name}
@@ -136,7 +146,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
 
         {/* Mobile Menu Button */}
         <button
-          className="lg:hidden text-yellow-500 p-2"
+          className={`lg:hidden p-2 transition-colors ${isScrolled ? 'text-slate-900' : 'text-yellow-500'}`}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Menu"
         >
@@ -147,6 +157,15 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
       {/* Mobile Nav Overlay */}
       {isMobileMenuOpen && (
         <div className="lg:hidden absolute top-full left-0 right-0 bg-white shadow-2xl py-6 px-6 space-y-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-4 duration-300">
+          {isAdmin && (
+            <button
+              onClick={() => { onNavigate('admin'); setIsMobileMenuOpen(false); }}
+              className="w-full flex items-center justify-center gap-2 bg-slate-900 text-yellow-500 py-3 rounded-xl font-black uppercase text-sm"
+            >
+              <ShieldCheck size={18} />
+              Dashboard Admin
+            </button>
+          )}
           <div className="flex justify-center space-x-4 mb-6 p-2 bg-slate-50 rounded-xl">
              {langs.map((l) => (
               <button

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, ShieldAlert, ShieldCheck, HardHat, Users, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
@@ -102,7 +101,7 @@ const EngagementModal: React.FC<EngagementModalProps> = ({ onClose, lang, t }) =
              <div className="container mx-auto px-6">
                 <div className={`flex flex-col lg:flex-row items-center gap-16 ${lang === 'ar' ? 'lg:flex-row-reverse text-right' : ''}`}>
                    <div className="lg:w-1/2 overflow-hidden rounded-[60px] shadow-2xl h-[500px]">
-                      <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover" alt="Environnement" />
+                      <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=75&w=1200" className="w-full h-full object-cover" alt="Environnement" loading="lazy" />
                    </div>
                    <div className="lg:w-1/2">
                       <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-8">{lang === 'ar' ? 'الالتزام البيئي' : 'Notre Conscience Écologique'}</h2>
