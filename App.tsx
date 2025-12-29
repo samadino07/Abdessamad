@@ -44,32 +44,48 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
-  // Supabase Config Resolution: process.env > LocalStorage
-  const sbConfig = useMemo(() => {
-    // Safe access to environment variables
-    let envUrl = '';
-    let envKey = '';
+  // Robust Environment Variable Fetcher
+  const getEnv = (key: string): string => {
+    try {
+      // 1. Try Vite standard (Build-time injection)
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+        // @ts-ignore
+        return import.meta.env[key];
+      }
+    } catch (e) {}
 
     try {
+      // 2. Try Node/Vercel standard (Runtime or defined process)
       // @ts-ignore
-      envUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-      // @ts-ignore
-      envKey = process.env.VITE_SUPABASE_KEY || process.env.SUPABASE_KEY || '';
-    } catch (e) {
-      console.warn("Environment variables not accessible via process.env");
+      if (typeof process !== 'undefined' && process.env && process.env[key]) {
+        // @ts-ignore
+        return process.env[key];
+      }
+    } catch (e) {}
+
+    return '';
+  };
+
+  const sbConfig = useMemo(() => {
+    // Check with and without VITE_ prefix to be safe
+    const url = getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL');
+    const key = getEnv('VITE_SUPABASE_KEY') || getEnv('SUPABASE_KEY');
+
+    if (url && key) {
+      return { url, key, source: 'env' };
     }
 
-    if (envUrl && envKey) {
-      return { url: envUrl, key: envKey, source: 'env' };
-    }
-
+    // Fallback to local storage for manual dashboard config
     const saved = localStorage.getItem('goldgen_supabase_config');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return { ...parsed, source: 'local' };
+        if (parsed.url && parsed.key) {
+          return { ...parsed, source: 'local' };
+        }
       } catch (e) {
-        return null;
+        console.warn("Invalid saved Supabase config");
       }
     }
 
@@ -78,7 +94,11 @@ const App: React.FC = () => {
 
   const supabase = useMemo(() => {
     if (sbConfig?.url && sbConfig?.key) {
-      return createClient(sbConfig.url, sbConfig.key);
+      try {
+        return createClient(sbConfig.url, sbConfig.key);
+      } catch (e) {
+        console.error("Failed to initialize Supabase client", e);
+      }
     }
     return null;
   }, [sbConfig]);
@@ -94,6 +114,8 @@ const App: React.FC = () => {
       
       if (!error && data) {
         setMessages(data);
+      } else if (error) {
+        console.error("Supabase fetch error:", error);
       }
     } else {
       const savedMessages = localStorage.getItem('goldgen_messages');
@@ -148,6 +170,7 @@ const App: React.FC = () => {
       const { error } = await supabase.from('messages').insert([newMessageData]);
       if (error) {
         console.error("Cloud insert error:", error);
+        // Fallback local persistence if cloud fails
         const localMsg = { ...newMessageData, id: Date.now().toString() };
         const updated = [localMsg, ...messages];
         setMessages(updated as any);
