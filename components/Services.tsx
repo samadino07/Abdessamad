@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { HardHat, PaintBucket, Flower, Briefcase, PlusCircle } from 'lucide-react';
+import { HardHat, PaintBucket, Flower, Briefcase, Plus } from 'lucide-react';
 
 interface ServicesProps {
   t: any;
@@ -23,13 +24,14 @@ const Services: React.FC<ServicesProps> = ({ t, lang, onSelect }) => {
   };
 
   return (
-    <section id="expertise" className="py-24 bg-slate-50">
+    <section id="expertise" className="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-500 overflow-hidden">
       <div className="container mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-20">
-          <h2 className="text-yellow-500 font-black uppercase tracking-[0.4em] text-sm mb-4">{t.label}</h2>
-          <h3 className="text-4xl md:text-5xl font-black text-slate-900 mb-6">{t.title}</h3>
-          <div className="w-24 h-2 bg-yellow-500 mx-auto rounded-full mb-8"></div>
-          <p className="text-slate-600 text-lg">
+        <div className="max-w-4xl mx-auto mb-24 text-center">
+          <div className="inline-block px-4 py-1.5 mb-6 bg-slate-900 dark:bg-yellow-500 text-yellow-500 dark:text-slate-950 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-xl">
+            {t.label}
+          </div>
+          <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-8 tracking-tighter">{t.title}</h2>
+          <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
             {t.desc}
           </p>
         </div>
@@ -39,37 +41,44 @@ const Services: React.FC<ServicesProps> = ({ t, lang, onSelect }) => {
             <div 
               key={key} 
               onClick={() => onSelect(key)}
-              className="bg-white rounded-[32px] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group border border-slate-100 flex flex-col h-full cursor-pointer hover:-translate-y-2"
+              className="group relative bg-white dark:bg-slate-800 rounded-[40px] overflow-hidden shadow-2xl dark:shadow-none transition-all duration-700 cursor-pointer flex flex-col h-full border border-slate-100 dark:border-white/5"
             >
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-64 overflow-hidden">
                 <img 
                   src={serviceImages[key as keyof typeof serviceImages]} 
                   alt={service.title} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/20 transition-colors"></div>
-                <div className={`absolute top-4 w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-slate-900 shadow-lg ${lang === 'ar' ? 'right-4' : 'left-4'}`}>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                
+                <div className={`absolute top-6 ${lang === 'ar' ? 'right-6' : 'left-6'} w-14 h-14 bg-yellow-500 rounded-2xl flex items-center justify-center text-slate-900 shadow-2xl transform group-hover:rotate-6 transition-transform`}>
                   {serviceIcons[key as keyof typeof serviceIcons]}
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                   <div className="bg-yellow-500 text-slate-900 px-4 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-2xl scale-90 group-hover:scale-100 transition-transform">
-                     {t.learnMore}
-                   </div>
                 </div>
               </div>
               
-              <div className={`p-8 flex flex-col flex-grow ${lang === 'ar' ? 'text-right' : ''}`}>
-                <h4 className="text-xl font-black text-slate-900 mb-4 group-hover:text-yellow-600 transition-colors">
+              <div className={`p-10 flex flex-col flex-grow ${lang === 'ar' ? 'text-right' : ''}`}>
+                <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-4 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors leading-tight">
                   {service.title}
                 </h4>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed flex-grow">
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mb-8 flex-grow">
                   {service.desc}
                 </p>
-                <div className={`mt-auto pt-6 border-t border-slate-50 flex items-center text-yellow-600 font-black text-xs uppercase tracking-[0.2em] group-hover:translate-x-2 transition-transform ${lang === 'ar' ? 'flex-row-reverse group-hover:-translate-x-2' : ''}`}>
-                  <span>{t.learnMore}</span>
-                  <PlusCircle size={14} className={lang === 'ar' ? 'mr-2' : 'ml-2'} />
+                
+                <div className={`flex items-center gap-3 text-slate-900 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-all ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <span className="relative">
+                    {t.learnMore}
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-500 group-hover:w-full transition-all duration-500"></span>
+                  </span>
+                  <div className="w-8 h-8 rounded-full border border-slate-200 dark:border-white/10 flex items-center justify-center group-hover:bg-yellow-500 dark:group-hover:bg-yellow-500 group-hover:border-yellow-500 transition-all group-hover:text-slate-900">
+                    <Plus size={16} />
+                  </div>
                 </div>
+              </div>
+
+              {/* Decorative background number */}
+              <div className="absolute -bottom-6 -right-6 text-9xl font-black text-slate-50 dark:text-white/5 opacity-0 group-hover:opacity-100 transition-opacity select-none pointer-events-none">
+                {Object.keys(t.items).indexOf(key) + 1}
               </div>
             </div>
           ))}

@@ -24,6 +24,7 @@ import { translations } from './translations';
 import { createClient } from '@supabase/supabase-js';
 
 export type Language = 'fr' | 'en' | 'ar';
+export type Theme = 'light' | 'dark';
 export type ActivePage = 'home' | 'about' | 'expertise' | 'engagement' | 'contact' | 'admin' | null;
 
 export interface Message {
@@ -39,12 +40,28 @@ export interface Message {
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('fr');
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem('goldgen_theme');
+    return (saved as Theme) || 'light';
+  });
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [activePage, setActivePage] = useState<ActivePage>(null);
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
+  // Theme Toggle Effect
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('goldgen_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   // Intersection Observer for reveal animations
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -223,7 +240,7 @@ const App: React.FC = () => {
   const unreadCount = messages.filter(m => m.status === 'new').length;
 
   return (
-    <div className={`min-h-screen bg-slate-950 selection:bg-yellow-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500 selection:bg-yellow-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <LoadingScreen />
       
       <Navbar 
@@ -232,6 +249,8 @@ const App: React.FC = () => {
         t={t.nav} 
         onNavigate={navigateTo}
         isAdmin={isAdminAuthenticated}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       
       <main className="relative">
