@@ -45,7 +45,6 @@ const App: React.FC = () => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return localStorage.getItem('goldgen_admin_auth') === 'true';
   });
-  const [pageTransition, setPageTransition] = useState(false);
   
   const [manualSbConfig, setManualSbConfig] = useState<{url: string, key: string} | null>(() => {
     const saved = localStorage.getItem('goldgen_sb_config');
@@ -54,7 +53,7 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
-  // Robust Supabase Initialization
+  // Initialisation Supabase (Vercel ou Manuel)
   const supabase = useMemo(() => {
     const v = (import.meta as any).env;
     const url = v?.VITE_SUPABASE_URL || manualSbConfig?.url;
@@ -83,27 +82,29 @@ const App: React.FC = () => {
       
       if (!error && data) {
         setMessages(data);
+        // Backup local pour le hors-ligne
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("Cloud fetch error", err);
+      console.error("Fetch Cloud Error", err);
     }
   }, [supabase]);
 
-  // Real-time Sync
+  // Synchronisation en Temps Réel (Indispensable pour voir les messages d'autres appareils sans refresh)
   useEffect(() => {
     fetchMessages();
     
     if (supabase) {
-      const channel = supabase
-        .channel('db_global_sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+      const subscription = supabase
+        .channel('any')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          console.log('Change received!', payload);
           fetchMessages();
         })
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(subscription);
       };
     }
   }, [supabase, fetchMessages]);
@@ -111,48 +112,36 @@ const App: React.FC = () => {
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
     
+    // Tentative Cloud d'abord (Partage universel)
     if (supabase) {
       const { error } = await supabase.from('messages').insert([newMessage]);
-      if (!error) return;
+      if (!error) {
+        console.log("Message saved to Cloud");
+        return;
+      }
+      console.error("Cloud insert failed, saving locally...", error.message);
     }
 
+    // Fallback Local (uniquement visible sur cet appareil)
     const local = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
     const updated = [{ ...newMessage, id: Date.now().toString() }, ...local];
     setMessages(updated as any);
     localStorage.setItem('goldgen_messages', JSON.stringify(updated));
   }, [supabase]);
 
+  const navigateTo = useCallback((page: ActivePage) => {
+    setActivePage(page);
+    setSelectedServiceId(null);
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleSaveSbConfig = (url: string, key: string) => {
     const config = { url, key };
     setManualSbConfig(config);
     localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
-    setTimeout(() => window.location.reload(), 300);
+    window.location.reload();
   };
 
-  const handleLogout = () => {
-    setIsAdminAuthenticated(false);
-    localStorage.removeItem('goldgen_admin_auth');
-    setActivePage('home');
-  };
-
-  useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-    localStorage.setItem('goldgen_theme', theme);
-  }, [theme]);
-
-  const navigateTo = useCallback((page: ActivePage) => {
-    if (page === activePage) return;
-    setPageTransition(true);
-    setTimeout(() => {
-      setActivePage(page);
-      setSelectedServiceId(null);
-      window.scrollTo(0, 0);
-      setPageTransition(false);
-    }, 400);
-  }, [activePage]);
-
-  // Main Page Content
   const renderPage = () => {
     switch (activePage) {
       case 'home': return <Hero t={t.hero} lang={lang} onDiscover={() => navigateTo('expertise')} onNavigate={navigateTo} />;
@@ -165,10 +154,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-white dark:bg-slate-950 transition-colors duration-500 selection:bg-gold-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
+    <div className={`min-h-screen bg-white dark:bg-slate-950 ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <LoadingScreen />
       
-      {/* Navbar visible uniquement sur le site principal */}
       {activePage !== 'admin' && (
         <Navbar 
           currentLang={lang} 
@@ -180,33 +168,31 @@ const App: React.FC = () => {
         />
       )}
       
-      {/* Site Principal */}
-      <main className={`transition-all duration-500 ${pageTransition ? 'opacity-0 scale-95' : 'opacity-100 scale-100'} ${activePage === 'admin' ? 'hidden' : 'pt-20'}`}>
-        {renderPage()}
-      </main>
-
-      {/* Administration : rendu séparé pour éviter l'écran blanc lié aux transitions du main */}
-      {activePage === 'admin' && (
-        <div className="fixed inset-0 z-[500] bg-slate-950">
+      {activePage === 'admin' ? (
+        <div className="min-h-screen bg-slate-950">
           {isAdminAuthenticated ? (
             <AdminDashboard 
               messages={messages} 
               onClose={() => navigateTo('home')} 
               onRefresh={fetchMessages}
-              onLogout={handleLogout}
+              onLogout={() => {
+                setIsAdminAuthenticated(false);
+                localStorage.removeItem('goldgen_admin_auth');
+                navigateTo('home');
+              }}
               onDelete={async (id) => {
                 if (supabase) await supabase.from('messages').delete().eq('id', id);
-                else setMessages(m => m.filter(msg => msg.id !== id));
+                else setMessages(prev => prev.filter(m => m.id !== id));
               }}
               onMarkRead={async (id) => {
                 if (supabase) await supabase.from('messages').update({ status: 'read' }).eq('id', id);
-                else setMessages(m => m.map(msg => msg.id === id ? { ...msg, status: 'read' as const } : msg));
+                else setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' as const } : m));
               }}
               onSaveConfig={handleSaveSbConfig}
-              currentSbConfig={{ 
-                url: (import.meta as any).env?.VITE_SUPABASE_URL || manualSbConfig?.url || '', 
-                key: (import.meta as any).env?.VITE_SUPABASE_KEY || manualSbConfig?.key || '', 
-                source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'Vercel Env' : 'Manual' 
+              currentSbConfig={{
+                url: supabase ? (manualSbConfig?.url || (import.meta as any).env?.VITE_SUPABASE_URL || '') : '',
+                key: supabase ? (manualSbConfig?.key || (import.meta as any).env?.VITE_SUPABASE_KEY || '') : '',
+                source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'Vercel Env' : 'Manual Settings'
               }}
             />
           ) : (
@@ -216,6 +202,10 @@ const App: React.FC = () => {
             }} />
           )}
         </div>
+      ) : (
+        <main className="pt-20">
+          {renderPage()}
+        </main>
       )}
 
       {activePage !== 'admin' && (
