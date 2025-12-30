@@ -22,7 +22,7 @@ export type Theme = 'light' | 'dark';
 export type ActivePage = 'home' | 'about' | 'expertise' | 'engagement' | 'contact' | 'admin' | null;
 
 export interface Message {
-  id: string;
+  id: string | number;
   name: string;
   phone: string;
   email: string;
@@ -66,6 +66,7 @@ const App: React.FC = () => {
         auth: { persistSession: false }
       });
     } catch (e) {
+      console.error("Failed to init Supabase", e);
       return null;
     }
   }, [manualSbConfig]);
@@ -80,8 +81,7 @@ const App: React.FC = () => {
         .order('date', { ascending: false });
       
       if (error) {
-        console.error("[CLOUD] Error:", error);
-        setLastRtEvent(`ERREUR: ${error.message}`);
+        setLastRtEvent(`FETCH ERR: ${error.message}`);
         return;
       }
 
@@ -90,7 +90,7 @@ const App: React.FC = () => {
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("[SYSTEM] Fetch crash:", err);
+      console.error("Fetch crash", err);
     }
   }, [supabase]);
 
@@ -104,13 +104,13 @@ const App: React.FC = () => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('goldgen-v8-final')
+      .channel('goldgen-v9-global')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          const time = new Date().toLocaleTimeString();
-          setLastRtEvent(`${payload.eventType.toUpperCase()} à ${time}`);
+          console.log("Realtime event received:", payload);
+          setLastRtEvent(`UPDATE ${payload.eventType} @ ${new Date().toLocaleTimeString()}`);
           fetchMessages();
         }
       )
@@ -126,34 +126,47 @@ const App: React.FC = () => {
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     if (!supabase) {
-      throw new Error("DÉTAIL: La connexion au Cloud n'est pas configurée. Veuillez contacter l'administrateur.");
+      throw new Error("CONFIG_MISSING: La connexion au Cloud n'est pas configurée dans l'Admin.");
     }
 
-    const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
-    const { error } = await supabase.from('messages').insert([newMessage]);
+    const payload = { 
+      name: msg.name,
+      phone: msg.phone,
+      email: msg.email,
+      subject: msg.subject,
+      budget: msg.budget || '',
+      message: msg.message,
+      status: 'new',
+      date: new Date().toISOString()
+    };
+
+    console.log("Attempting to insert into Supabase:", payload);
+    const { error } = await supabase.from('messages').insert([payload]);
     
     if (error) {
-      console.error("[DATABASE ERROR]", error);
-      throw error;
+      console.error("Supabase insert error:", error);
+      throw new Error(`DATABASE_ERROR: ${error.message}`);
     }
 
-    fetchMessages();
-  }, [supabase, fetchMessages]);
+    console.log("Insert successful!");
+    // Force refresh local view if admin
+    if (activePage === 'admin') fetchMessages();
+  }, [supabase, fetchMessages, activePage]);
 
   const handleTestPropagation = async () => {
     if (!supabase) return;
-    const testMsg = {
-      name: "TEST V8",
-      phone: "0800000000",
-      email: "v8@goldgen.ma",
-      subject: "FINAL TEST",
-      message: `Diagnostic V8 à ${new Date().toLocaleTimeString()}`,
-      date: new Date().toISOString(),
-      status: 'new' as const
-    };
-    const { error } = await supabase.from('messages').insert([testMsg]);
-    if (error) setLastRtEvent(`ERREUR: ${error.message}`);
-    else fetchMessages();
+    try {
+      await addMessage({
+        name: "TEST ADMIN",
+        phone: "0000000000",
+        email: "test@goldgen.ma",
+        subject: "DIAGNOSTIC",
+        message: "Ceci est un test de propagation."
+      });
+      setLastRtEvent("Test réussi !");
+    } catch (err: any) {
+      setLastRtEvent(`Erreur: ${err.message}`);
+    }
   };
 
   const navigateTo = useCallback((page: ActivePage) => {
@@ -175,7 +188,7 @@ const App: React.FC = () => {
       case 'about': return <About t={t.about} lang={lang} />;
       case 'expertise': return <Services t={t.services} lang={lang} onSelect={setSelectedServiceId} />;
       case 'engagement': return <HSE t={t.hse} lang={lang} />;
-      case 'contact': return <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />;
+      case 'contact': return <Contact t={t.contact} lang={lang} onSendMessage={addMessage} isCloudReady={!!supabase} />;
       default: return null;
     }
   };

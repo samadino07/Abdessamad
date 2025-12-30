@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { Phone, Mail, Send, CheckCircle2, AlertCircle, MapPin, User, Tag, Coins, WifiOff } from 'lucide-react';
+import { Phone, Mail, Send, CheckCircle2, AlertCircle, MapPin, User, Tag, Coins, WifiOff, Loader2 } from 'lucide-react';
 import { CONTACT_DATA } from './constants';
 
 interface ContactProps {
   t: any;
   lang: string;
-  onSendMessage: (msg: { name: string; phone: string; email: string; subject: string; message: string; budget?: string }) => void;
+  isCloudReady: boolean;
+  onSendMessage: (msg: { name: string; phone: string; email: string; subject: string; message: string; budget?: string }) => Promise<void>;
 }
 
-const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
+const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage, isCloudReady }) => {
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -44,17 +45,28 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    const error = validatePhone(formData.phone);
-    if (error) {
-      setPhoneError(error);
+    
+    const pError = validatePhone(formData.phone);
+    if (pError) {
+      setPhoneError(pError);
       return;
     }
+
+    if (!isCloudReady) {
+      setErrorMsg("ERREUR DE CONFIGURATION: La connexion au serveur n'est pas établie. Veuillez contacter l'administrateur.");
+      return;
+    }
+
     setIsSending(true);
     
     try {
+      console.log("Submitting form...");
       await onSendMessage(formData);
+      console.log("Form submitted successfully!");
       setIsSending(false);
       setIsSent(true);
+      
+      // Reset form
       setFormData({ 
         name: '', 
         phone: '', 
@@ -63,10 +75,12 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
         budget: '', 
         message: '' 
       });
+
+      // Clear success message after 5s
       setTimeout(() => setIsSent(false), 5000);
     } catch (err: any) {
-      console.error("Critical Send Error:", err);
-      setErrorMsg(err.message || "Erreur de connexion au Cloud. Vérifiez les paramètres Admin.");
+      console.error("Form submission failed:", err);
+      setErrorMsg(err.message || "Une erreur est survenue lors de l'envoi. Veuillez réessayer.");
       setIsSending(false);
     }
   };
@@ -137,6 +151,13 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
                     </div>
                   )}
 
+                  {!isCloudReady && (
+                    <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-3 text-yellow-600">
+                      <AlertCircle size={18} className="shrink-0" />
+                      <p className="text-[10px] font-bold uppercase">Mode Hors-ligne : L'envoi est désactivé (Configurez Supabase f l'Admin).</p>
+                    </div>
+                  )}
+
                   <form className="space-y-6 md:space-y-8" onSubmit={handleSubmit}>
                     <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
                       <div className="space-y-2 md:space-y-3">
@@ -201,8 +222,22 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
                        <textarea rows={4} className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-gold-500 p-4 md:p-5 rounded-xl md:rounded-2xl outline-none font-bold text-slate-900 dark:text-white transition-all shadow-sm resize-none text-sm md:text-base" value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})}></textarea>
                     </div>
 
-                    <button disabled={isSending} className="btn-shimmer relative overflow-hidden w-full bg-gold-500 text-slate-950 p-5 md:p-6 rounded-xl md:rounded-2xl font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[12px] md:text-sm flex items-center justify-center gap-3 md:gap-4 shadow-xl shadow-gold-500/30 hover:shadow-gold-500/50 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50">
-                       <span>{isSending ? 'Envoi...' : t.send}</span><Send size={18} className="md:w-5 md:h-5" />
+                    <button 
+                      type="submit"
+                      disabled={isSending || !isCloudReady} 
+                      className="btn-shimmer relative overflow-hidden w-full bg-gold-500 text-slate-950 p-5 md:p-6 rounded-xl md:rounded-2xl font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[12px] md:text-sm flex items-center justify-center gap-3 md:gap-4 shadow-xl shadow-gold-500/30 hover:shadow-gold-500/50 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                       {isSending ? (
+                         <>
+                           <Loader2 className="animate-spin" size={18} />
+                           <span>Envoi en cours...</span>
+                         </>
+                       ) : (
+                         <>
+                           <span>{t.send}</span>
+                           <Send size={18} className="md:w-5 md:h-5" />
+                         </>
+                       )}
                     </button>
                   </form>
                  </>
