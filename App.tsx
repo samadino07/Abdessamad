@@ -42,7 +42,7 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<ActivePage>('home');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [rtStatus, setRtStatus] = useState<string>('DISCONNECTED');
+  const [rtStatus, setRtStatus] = useState<string>('INIT');
   const [lastRtEvent, setLastRtEvent] = useState<string>('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return localStorage.getItem('goldgen_admin_auth') === 'true';
@@ -65,7 +65,7 @@ const App: React.FC = () => {
       return createClient(url, key, {
         realtime: {
           params: {
-            eventsPerSecond: 10,
+            eventsPerSecond: 20,
           },
         },
       });
@@ -93,6 +93,7 @@ const App: React.FC = () => {
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
+      console.error("Fetch Error:", err);
       const local = localStorage.getItem('goldgen_messages');
       if (local) setMessages(JSON.parse(local));
     }
@@ -104,30 +105,55 @@ const App: React.FC = () => {
     }
   }, [activePage, isAdminAuthenticated, fetchMessages]);
 
+  // Real-time listener configuration
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setRtStatus('NO_CONFIG');
+      return;
+    }
 
+    setRtStatus('CONNECTING...');
+    
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('realtime-messages')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'messages' 
+        },
         (payload) => {
-          setLastRtEvent(`${payload.eventType} at ${new Date().toLocaleTimeString()}`);
+          console.log('Real-time event received:', payload);
+          const time = new Date().toLocaleTimeString();
+          setLastRtEvent(`${payload.eventType.toUpperCase()} à ${time}`);
           fetchMessages();
+          
+          // Trigger a subtle sound or vibration if admin is active
+          if (activePage === 'admin' && 'vibrate' in navigator) {
+            navigator.vibrate(200);
+          }
         }
       )
-      .subscribe((status) => {
-        setRtStatus(status);
+      .subscribe((status, err) => {
+        console.log('Real-time subscription status:', status, err);
+        setRtStatus(status === 'SUBSCRIBED' ? 'ACTIF' : status.toUpperCase());
+        
         if (status === 'SUBSCRIBED') {
           fetchMessages();
+        }
+        
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Real-time channel error. Check RLS and Publications.');
+          setLastRtEvent('ERREUR CANAL (Vérifiez RLS)');
         }
       });
 
     return () => {
+      console.log('Cleaning up Real-time channel...');
       supabase.removeChannel(channel);
     };
-  }, [supabase, fetchMessages]);
+  }, [supabase, fetchMessages, activePage]);
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
@@ -136,8 +162,9 @@ const App: React.FC = () => {
       try {
         const { error } = await supabase.from('messages').insert([newMessage]);
         if (!error) return;
+        console.error("Cloud insert error:", error);
       } catch (e) {
-        console.error(e);
+        console.error("Cloud connection failed:", e);
       }
     }
 

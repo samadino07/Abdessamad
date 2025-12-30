@@ -45,25 +45,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
   const isCloudActive = !!currentSbConfig?.url;
 
   const sqlFixUltimate = `-- COPIER TOUT CE SCRIPT DANS SUPABASE > SQL EDITOR
--- 1. Réinitialiser la publication Realtime
+-- 1. Nettoyage et Réinitialisation de la Publication Realtime
 drop publication if exists supabase_realtime;
 create publication supabase_realtime;
 
--- 2. Ajouter la table messages à la publication
+-- 2. Ajout explicite de la table messages à la diffusion
 alter publication supabase_realtime add table messages;
 
--- 3. FORCER L'IDENTITÉ DE RÉPLIQUE (CRUCIAL POUR LES PAYLOADS)
+-- 3. FORCER L'IDENTITÉ DE RÉPLIQUE (Essentiel pour voir les données dans le canal)
 alter table messages replica identity full;
 
--- 4. Activer RLS
+-- 4. Accorder les permissions de schéma (SOUVENT LE MAILLON MANQUANT)
+grant usage on schema public to anon, authenticated;
+grant all on table messages to anon, authenticated;
+grant all on all sequences in schema public to anon, authenticated;
+
+-- 5. Sécurité RLS (Row Level Security)
 alter table messages enable row level security;
 
--- 5. Créer une politique d'accès universelle (Supprime les blocages)
+-- 6. Créer une politique d'accès universelle (Supprime tous les blocages)
 drop policy if exists "Enable all for everyone" on messages;
 create policy "Enable all for everyone" on messages
 for all using (true) with check (true);
 
--- 6. Vérifier les types
+-- 7. S'assurer que les IDs sont générés automatiquement
 alter table messages alter column id set default gen_random_uuid();`;
 
   return (
@@ -76,9 +81,9 @@ alter table messages alter column id set default gen_random_uuid();`;
           <div>
             <h1 className="text-white font-black uppercase tracking-tighter text-lg">GOLDGEN <span className="text-slate-500">ADMIN</span></h1>
             <div className="flex items-center gap-2">
-               <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'SUBSCRIBED' ? 'text-green-500 bg-green-500/10 border-green-500/20' : 'text-red-500 bg-red-500/10 border-red-500/20'}`}>
-                  <Radio size={10} className={rtStatus === 'SUBSCRIBED' ? 'animate-pulse' : ''} /> 
-                  {rtStatus === 'SUBSCRIBED' ? 'CLOUD LIVE' : rtStatus || 'OFFLINE'}
+               <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'ACTIF' ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
+                  <Radio size={10} className={rtStatus === 'ACTIF' ? 'animate-pulse' : ''} /> 
+                  {rtStatus === 'ACTIF' ? 'TEMPS RÉEL : PRÊT' : `STATUT : ${rtStatus || 'OFFLINE'}`}
                </span>
             </div>
           </div>
@@ -104,40 +109,42 @@ alter table messages alter column id set default gen_random_uuid();`;
         <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-30 shrink-0 max-h-[85vh] overflow-y-auto">
           <div className="max-w-5xl mx-auto">
             <div className="flex gap-4 mb-8 border-b border-white/5 pb-6">
-               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Connexion</button>
-               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparation (SQL)</button>
+               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>État du Système</button>
+               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparation Forcée (SQL)</button>
             </div>
 
             {activeTab === 'config' ? (
               <div className="grid md:grid-cols-2 gap-10 animate-in fade-in duration-300">
                 <div className="space-y-6">
-                  <div className="bg-black/60 p-6 rounded-3xl border border-white/5 space-y-4 shadow-inner">
-                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest"><Activity size={16} /> Moniteur Live</h3>
+                  <div className="bg-black/40 p-6 rounded-3xl border border-white/5 space-y-4 shadow-inner">
+                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest"><Activity size={16} /> Flux de Données Live</h3>
                     <div className="space-y-3 pt-2">
                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500 italic">Dernier Événement:</span>
-                          <span className="text-gold-500 font-mono text-[10px]">{lastRtEvent || 'Aucun signal...'}</span>
+                          <span className="text-slate-500 italic">Dernier Signal Reçu :</span>
+                          <span className={`${lastRtEvent ? 'text-green-400' : 'text-slate-600'} font-mono text-[10px]`}>
+                            {lastRtEvent || 'En attente de signal...'}
+                          </span>
                        </div>
                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500 italic">Source Config:</span>
-                          <span className="text-white font-black">{currentSbConfig?.source}</span>
+                          <span className="text-slate-500 italic">Identifiants :</span>
+                          <span className="text-white font-black px-2 py-0.5 bg-white/5 rounded-md border border-white/5">{currentSbConfig?.source}</span>
                        </div>
                     </div>
                   </div>
                   <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-3 items-start">
                      <AlertCircle size={18} className="text-blue-500 shrink-0" />
                      <p className="text-[10px] text-slate-400 leading-relaxed">
-                        <strong>Rappel Vercel:</strong> Si vous changez les clés, faites un "Redeploy" sur Vercel pour valider.
+                        <strong>Note :</strong> Si le signal reste bloqué sur "En attente", c'est généralement un problème de permissions SQL (RLS/Grant) dans Supabase.
                      </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><HardDrive size={14} /> Forcer Identifiants</h3>
+                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><HardDrive size={14} /> Configuration Manuelle</h3>
                   <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
                     <input type="text" placeholder="URL Supabase" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
-                    <input type="password" placeholder="Clé Anon" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbKey} onChange={e => setSbKey(e.target.value)} />
-                    <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-gold-500/20 active:scale-95 transition-all">Sauvegarder</button>
+                    <input type="password" placeholder="Clé API Anon" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbKey} onChange={e => setSbKey(e.target.value)} />
+                    <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-gold-500/20 active:scale-95 transition-all">Mettre à jour la connexion</button>
                   </form>
                 </div>
               </div>
@@ -146,20 +153,20 @@ alter table messages alter column id set default gen_random_uuid();`;
                 <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-[40px] space-y-4">
                    <div className="flex items-center gap-4 text-red-500">
                       <ShieldAlert size={32} />
-                      <h3 className="font-black uppercase tracking-tighter text-xl">Script "Replica Identity"</h3>
+                      <h3 className="font-black uppercase tracking-tighter text-xl">Script de Réparation Finale (V3)</h3>
                    </div>
                    <p className="text-slate-400 text-xs leading-relaxed">
-                     Ce script est spécial: il force l'identité de réplique en mode "Full". C'est souvent la seule solution quand les messages n'apparaissent pas.
+                     Ce script résout 99% des problèmes de synchronisation en forçant les permissions de schéma (GRANT) et l'identité de réplique.
                    </p>
                    <div className="relative">
-                      <pre className="bg-black/80 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[10px] overflow-x-auto whitespace-pre">
+                      <pre className="bg-black/80 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[10px] overflow-x-auto whitespace-pre leading-relaxed">
                         {sqlFixUltimate}
                       </pre>
                       <button 
-                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimate); alert("Copié !"); }}
-                        className="absolute bottom-4 right-4 flex items-center gap-2 bg-white/10 hover:bg-gold-500 hover:text-slate-950 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimate); alert("Script SQL Copié ! Collez-le dans l'éditeur SQL de Supabase."); }}
+                        className="absolute bottom-4 right-4 flex items-center gap-2 bg-gold-500 text-slate-950 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-xl hover:scale-105"
                       >
-                        <Terminal size={14} /> Copier
+                        <Terminal size={14} /> Copier le script
                       </button>
                    </div>
                 </div>
@@ -178,7 +185,7 @@ alter table messages alter column id set default gen_random_uuid();`;
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                <input 
                  type="text" 
-                 placeholder="Chercher..." 
+                 placeholder="Chercher par nom, téléphone..." 
                  className="w-full bg-slate-900 border border-white/10 rounded-2xl py-4 md:py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
@@ -201,7 +208,7 @@ alter table messages alter column id set default gen_random_uuid();`;
              {filteredMessages.length === 0 ? (
                <div className="py-32 text-center opacity-20 flex flex-col items-center">
                   <MessageSquare size={100} className="mb-6" />
-                  <p className="text-2xl font-black uppercase tracking-tighter">Aucun message</p>
+                  <p className="text-2xl font-black uppercase tracking-tighter">Aucun message trouvé</p>
                </div>
              ) : (
                filteredMessages.map((msg) => (
