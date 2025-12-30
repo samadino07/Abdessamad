@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, Activity, Settings, RefreshCw, LogOut, Wifi, WifiOff, User, Tag, Coins, AlertTriangle } from 'lucide-react';
+import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, Activity, Settings, RefreshCw, LogOut, Wifi, WifiOff, User, Tag, Coins, AlertTriangle, Database } from 'lucide-react';
 import { Message } from '../App';
 
 interface AdminDashboardProps {
@@ -52,11 +52,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
             <div className="flex items-center gap-2">
                {currentSbConfig?.url ? (
                  <span className="flex items-center gap-1 text-green-500 text-[9px] font-black uppercase bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                    <Wifi size={10} /> Cloud Sync OK
+                    <Wifi size={10} className="animate-pulse" /> Cloud Sync Active
                  </span>
                ) : (
                  <span className="flex items-center gap-1 text-red-500 text-[9px] font-black uppercase bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
-                    <WifiOff size={10} /> Mode Local
+                    <WifiOff size={10} /> Local Mode (No Sync)
                  </span>
                )}
             </div>
@@ -64,10 +64,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={handleRefresh} className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}>
+          <button 
+            title="Rafraîchir les messages Cloud"
+            onClick={handleRefresh} 
+            className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+          >
             <RefreshCw size={18} />
           </button>
-          <button onClick={() => setShowSettings(!showSettings)} className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-gold-500 text-slate-950 border-gold-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+          <button 
+            title="Configuration Cloud"
+            onClick={() => setShowSettings(!showSettings)} 
+            className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-gold-500 text-slate-950 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+          >
             <Settings size={18} />
           </button>
           <button onClick={onLogout} className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all">
@@ -80,30 +88,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
       </header>
 
       {showSettings && (
-        <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-2 duration-300 shadow-2xl">
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-10">
-            <div className="space-y-4">
-              <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest">
-                <Activity size={16} /> Status Système
-              </h3>
-              <div className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-4">
-                 <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-black mb-1">Source des données</p>
-                    <p className="text-white font-bold text-sm">{currentSbConfig?.source || 'Aucune'}</p>
-                 </div>
-                 <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-black mb-1">URL Endpoint</p>
-                    <p className="text-[10px] text-slate-400 font-mono break-all bg-slate-950 p-2 rounded-lg">{currentSbConfig?.url || 'Non configuré'}</p>
-                 </div>
-              </div>
+        <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-2 duration-300 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+          
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+               <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Configuration Multi-Appareils</h2>
+               <div className="px-4 py-1.5 bg-white/5 rounded-full border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Source: {currentSbConfig?.source}
+               </div>
             </div>
-            <div className="space-y-4">
-              <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest">Configuration Cloud Manuelle</h3>
-              <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
-                 <input type="text" placeholder="URL Supabase" className="w-full bg-slate-950 border border-white/10 p-3 rounded-xl text-sm outline-none focus:border-gold-500" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
-                 <input type="password" placeholder="Anon Key" className="w-full bg-slate-950 border border-white/10 p-3 rounded-xl text-sm outline-none focus:border-gold-500" value={sbKey} onChange={e => setSbKey(e.target.value)} />
-                 <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-gold-500/20 active:scale-95 transition-all">Sauvegarder & Redémarrer</button>
-              </form>
+
+            <div className="grid md:grid-cols-2 gap-10">
+              <div className="space-y-6">
+                <div className="bg-black/40 p-6 rounded-3xl border border-white/5 space-y-4">
+                   <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest">
+                    <Activity size={16} /> Diagnostic Cloud
+                   </h3>
+                   <div className="space-y-3">
+                      <div className="flex justify-between items-center text-xs">
+                         <span className="text-slate-500">Service URL:</span>
+                         <span className="text-slate-300 font-mono truncate max-w-[200px]">{currentSbConfig?.url || 'Vérifiez Vercel'}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                         <span className="text-slate-500">Service Key:</span>
+                         <span className="text-slate-300 font-mono">••••••••••••••</span>
+                      </div>
+                      <div className="pt-2">
+                        {currentSbConfig?.url ? (
+                          <p className="text-[10px] text-green-500/70 italic">✓ Les messages saisis sur mobile apparaîtront ici automatiquement.</p>
+                        ) : (
+                          <p className="text-[10px] text-red-500/70 italic animate-pulse">⚠ Alerte: Cloud non configuré. Les messages ne seront pas partagés entre appareils.</p>
+                        )}
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2">
+                   <Database size={14} /> Configurer manuellement
+                </h3>
+                <p className="text-slate-500 text-[10px] leading-relaxed">Si vous changez d'appareil ou réinstallez le site, entrez vos clés Supabase ici pour récupérer tous vos messages.</p>
+                <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
+                   <input type="text" placeholder="URL Supabase" className="w-full bg-slate-950 border border-white/10 p-3.5 rounded-xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
+                   <input type="password" placeholder="Anon Key" className="w-full bg-slate-950 border border-white/10 p-3.5 rounded-xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbKey} onChange={e => setSbKey(e.target.value)} />
+                   <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-gold-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                      Appliquer & Synchroniser
+                   </button>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -113,15 +147,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
       <div className="flex-grow overflow-y-auto p-4 md:p-8 bg-slate-950/50">
         <div className="max-w-6xl mx-auto">
           
-          <div className="mb-10 relative max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
-            <input 
-              type="text" 
-              placeholder="Chercher par nom, tel, sujet..." 
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+             <div className="relative max-w-md w-full">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+               <input 
+                 type="text" 
+                 placeholder="Chercher par nom, tel, sujet..." 
+                 className="w-full bg-slate-900 border border-white/10 rounded-2xl py-4 md:py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
+                 value={searchTerm}
+                 onChange={e => setSearchTerm(e.target.value)}
+               />
+             </div>
+             <div className="bg-slate-900/50 border border-white/5 rounded-2xl px-6 py-4 flex items-center gap-6">
+                <div className="text-center">
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Nouveaux</p>
+                   <p className="text-gold-500 font-black text-xl">{messages.filter(m => m.status === 'new').length}</p>
+                </div>
+                <div className="w-px h-8 bg-white/10"></div>
+                <div className="text-center">
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total</p>
+                   <p className="text-white font-black text-xl">{messages.length}</p>
+                </div>
+             </div>
           </div>
 
           <div className="grid gap-5">
@@ -129,7 +176,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
                <div className="py-32 text-center opacity-10 flex flex-col items-center">
                   <MessageSquare size={100} className="mb-6" />
                   <p className="text-3xl font-black uppercase tracking-tighter">Aucun Message Détecté</p>
-                  <p className="mt-2 font-bold italic">Vérifiez la connexion Cloud dans les paramètres</p>
+                  <p className="mt-2 font-bold italic">Vérifiez la connexion Cloud ou videz les filtres</p>
                </div>
              ) : (
                filteredMessages.map((msg) => (
@@ -137,23 +184,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                        
                        <div className="flex items-center gap-6">
-                          <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center text-slate-950 shadow-xl shrink-0 ${msg.status === 'new' ? 'bg-gold-500' : 'bg-slate-700 text-slate-400'}`}>
+                          <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[24px] flex items-center justify-center text-slate-950 shadow-xl shrink-0 ${msg.status === 'new' ? 'bg-gold-500' : 'bg-slate-700 text-slate-400'}`}>
                              <User size={28} />
                           </div>
                           <div>
-                             <h4 className="text-white text-2xl font-black tracking-tight">{msg.name}</h4>
-                             <div className="flex flex-wrap gap-4 mt-2">
-                                <a href={`tel:${msg.phone}`} className="text-gold-500 font-black text-sm hover:text-white transition-colors flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg">
+                             <h4 className="text-white text-xl md:text-2xl font-black tracking-tight">{msg.name}</h4>
+                             <div className="flex flex-wrap gap-3 mt-2">
+                                <a href={`tel:${msg.phone}`} className="text-gold-500 font-black text-[10px] md:text-sm hover:text-white transition-colors flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg">
                                    <Phone size={14} /> {msg.phone}
                                 </a>
-                                <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg">
+                                <span className="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg">
                                    <Calendar size={14} className="text-gold-500" /> {new Date(msg.date).toLocaleDateString()}
                                 </span>
                              </div>
                           </div>
                        </div>
 
-                       <div className="bg-black/20 p-6 rounded-3xl flex-grow lg:max-w-md border border-white/5">
+                       <div className="bg-black/20 p-5 md:p-6 rounded-3xl flex-grow lg:max-w-md border border-white/5">
                           <div className="flex items-center gap-2 mb-3">
                              <Tag size={14} className="text-gold-500" />
                              <span className="text-white font-black uppercase text-[10px] tracking-widest">{msg.subject}</span>
@@ -168,14 +215,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
 
                        <div className="flex items-center gap-3 shrink-0">
                           {msg.status === 'new' && (
-                             <button onClick={() => onMarkRead(msg.id)} className="p-5 bg-green-500 text-slate-950 rounded-2xl hover:bg-green-400 transition-all shadow-lg hover:scale-105 active:scale-95">
+                             <button onClick={() => onMarkRead(msg.id)} className="p-4 md:p-5 bg-green-500 text-slate-950 rounded-2xl hover:bg-green-400 transition-all shadow-lg hover:scale-105 active:scale-95">
                                 <CheckCircle size={24} />
                              </button>
                           )}
-                          <a href={`mailto:${msg.email}`} className="p-5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-2xl hover:bg-blue-500 hover:text-white transition-all shadow-lg">
+                          <a href={`mailto:${msg.email}`} className="p-4 md:p-5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-2xl hover:bg-blue-500 hover:text-white transition-all shadow-lg">
                              <Mail size={24} />
                           </a>
-                          <button onClick={() => setDeleteConfirmId(msg.id)} className="p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg">
+                          <button onClick={() => setDeleteConfirmId(msg.id)} className="p-4 md:p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg">
                              <Trash2 size={24} />
                           </button>
                        </div>

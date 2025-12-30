@@ -53,16 +53,20 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
-  // Initialisation Supabase (Vercel ou Manuel)
+  // Supabase Client Initialization
   const supabase = useMemo(() => {
     const v = (import.meta as any).env;
     const url = v?.VITE_SUPABASE_URL || manualSbConfig?.url;
     const key = v?.VITE_SUPABASE_KEY || manualSbConfig?.key;
     
-    if (!url || !key) return null;
+    if (!url || !key) {
+      console.warn("Supabase credentials missing. Cloud sync disabled.");
+      return null;
+    }
     try {
       return createClient(url, key);
     } catch (e) {
+      console.error("Supabase client init failed:", e);
       return null;
     }
   }, [manualSbConfig]);
@@ -80,49 +84,68 @@ const App: React.FC = () => {
         .select('*')
         .order('date', { ascending: false });
       
-      if (!error && data) {
+      if (error) {
+        console.error("Supabase error fetching messages:", error.message);
+        throw error;
+      }
+      
+      if (data) {
         setMessages(data);
-        // Backup local pour le hors-ligne
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("Fetch Cloud Error", err);
+      console.error("Fetch Cloud Messages Failed:", err);
+      // Fallback local en cas de coupure internet
+      const local = localStorage.getItem('goldgen_messages');
+      if (local) setMessages(JSON.parse(local));
     }
   }, [supabase]);
 
-  // Synchronisation en Temps Réel (Indispensable pour voir les messages d'autres appareils sans refresh)
+  // High-reliability Real-time Sync
   useEffect(() => {
     fetchMessages();
     
-    if (supabase) {
-      const subscription = supabase
-        .channel('any')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-          console.log('Change received!', payload);
-          fetchMessages();
-        })
-        .subscribe();
+    if (!supabase) return;
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
+    // Specific channel for messages table
+    const channel = supabase
+      .channel('messages_realtime_sync')
+      .on(
+        'postgres_changes', 
+        { event: '*', schema: 'public', table: 'messages' }, 
+        (payload) => {
+          console.log('Real-time update from Supabase:', payload);
+          fetchMessages();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Supabase real-time status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabase, fetchMessages]);
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
     
-    // Tentative Cloud d'abord (Partage universel)
+    // Always attempt Cloud first for cross-device sync
     if (supabase) {
-      const { error } = await supabase.from('messages').insert([newMessage]);
-      if (!error) {
-        console.log("Message saved to Cloud");
-        return;
+      try {
+        const { error } = await supabase.from('messages').insert([newMessage]);
+        if (!error) {
+          console.log("Success: Message pushed to Cloud.");
+          return;
+        }
+        console.error("Cloud insert error:", error.message);
+      } catch (e) {
+        console.error("Cloud connection failed:", e);
       }
-      console.error("Cloud insert failed, saving locally...", error.message);
     }
 
-    // Fallback Local (uniquement visible sur cet appareil)
+    // Local fallback only if Cloud fails
+    console.warn("Saving message locally (Device-only). Synchronisation disabled.");
     const local = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
     const updated = [{ ...newMessage, id: Date.now().toString() }, ...local];
     setMessages(updated as any);
@@ -139,6 +162,7 @@ const App: React.FC = () => {
     const config = { url, key };
     setManualSbConfig(config);
     localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
+    // Force reload to apply new config globally
     window.location.reload();
   };
 
@@ -183,16 +207,18 @@ const App: React.FC = () => {
               onDelete={async (id) => {
                 if (supabase) await supabase.from('messages').delete().eq('id', id);
                 else setMessages(prev => prev.filter(m => m.id !== id));
+                fetchMessages();
               }}
               onMarkRead={async (id) => {
                 if (supabase) await supabase.from('messages').update({ status: 'read' }).eq('id', id);
                 else setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' as const } : m));
+                fetchMessages();
               }}
               onSaveConfig={handleSaveSbConfig}
               currentSbConfig={{
                 url: supabase ? (manualSbConfig?.url || (import.meta as any).env?.VITE_SUPABASE_URL || '') : '',
                 key: supabase ? (manualSbConfig?.key || (import.meta as any).env?.VITE_SUPABASE_KEY || '') : '',
-                source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'Vercel Env' : 'Manual Settings'
+                source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'Vercel Env' : 'Manual Config'
               }}
             />
           ) : (
