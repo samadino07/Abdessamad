@@ -1,16 +1,18 @@
+
 import React from 'react';
 import { CONTACT_DATA } from '../constants';
 import { ActivePage } from '../App';
-import { Shield, Facebook, Linkedin, Instagram } from 'lucide-react';
+import { Shield, Facebook, Linkedin, Instagram, Wifi, WifiOff } from 'lucide-react';
 
 interface FooterProps {
   t: any;
   lang: string;
   onNavigate: (page: ActivePage) => void;
   unreadCount?: number;
+  isCloudConnected?: boolean;
 }
 
-const Footer: React.FC<FooterProps> = ({ t, lang, onNavigate, unreadCount = 0 }) => {
+const Footer: React.FC<FooterProps> = ({ t, lang, onNavigate, unreadCount = 0, isCloudConnected = false }) => {
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
@@ -105,6 +107,19 @@ const Footer: React.FC<FooterProps> = ({ t, lang, onNavigate, unreadCount = 0 })
         <div className={`border-t border-white/5 pt-12 flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
           <p className="text-center md:text-left">© {currentYear} STE GOLDGEN SARL AU. {t.rights}</p>
           <div className={`flex space-x-8 items-center ${lang === 'ar' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+            {/* Cloud Sync Status (Visible only if Admin is logged in or for dev check) */}
+            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+               {isCloudConnected ? (
+                 <div className="flex items-center gap-1.5 text-green-500">
+                    <Wifi size={12} /> <span className="text-[8px] font-black">CLOUD SYNC ACTIVE</span>
+                 </div>
+               ) : (
+                 <div className="flex items-center gap-1.5 text-red-500">
+                    <WifiOff size={12} /> <span className="text-[8px] font-black">OFFLINE MODE</span>
+                 </div>
+               )}
+            </div>
+            
             <button onClick={() => onNavigate('engagement')} className="hover:text-white transition-colors">{t.hse}</button>
             <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
             <button 

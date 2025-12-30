@@ -40,7 +40,7 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const error = validatePhone(formData.phone);
     if (error) {
@@ -49,8 +49,9 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
     }
     setIsSending(true);
     
-    setTimeout(() => {
-      onSendMessage(formData);
+    // Attempt sending to Cloud (via App.tsx logic)
+    try {
+      await onSendMessage(formData);
       setIsSending(false);
       setIsSent(true);
       setFormData({ 
@@ -62,7 +63,10 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
         message: '' 
       });
       setTimeout(() => setIsSent(false), 5000);
-    }, 1500);
+    } catch (err) {
+      console.error("Critical Send Error:", err);
+      setIsSending(false);
+    }
   };
 
   return (
@@ -117,8 +121,8 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
                     <div className="w-20 h-20 bg-gold-500 rounded-full flex items-center justify-center text-slate-950 mb-6 shadow-2xl shadow-gold-500/20">
                        <CheckCircle2 size={40} />
                     </div>
-                    <h4 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-4">Message Transmis !</h4>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium text-base md:text-lg">Notre équipe vous contactera dans les plus brefs délais.</p>
+                    <h4 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-4">Message Transmis au Cloud!</h4>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium text-base md:text-lg">Votre demande est maintenant visible sur tous les PC connectés.</p>
                  </div>
                ) : (
                  <>
@@ -188,7 +192,7 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
                     </div>
 
                     <button disabled={isSending} className="btn-shimmer relative overflow-hidden w-full bg-gold-500 text-slate-950 p-5 md:p-6 rounded-xl md:rounded-2xl font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[12px] md:text-sm flex items-center justify-center gap-3 md:gap-4 shadow-xl shadow-gold-500/30 hover:shadow-gold-500/50 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50">
-                       <span>{isSending ? '...' : t.send}</span><Send size={18} className="md:w-5 md:h-5" />
+                       <span>{isSending ? 'Envoi...' : t.send}</span><Send size={18} className="md:w-5 md:h-5" />
                     </button>
                   </form>
                  </>
