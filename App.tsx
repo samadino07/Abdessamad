@@ -13,6 +13,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ServiceDetail from './components/ServiceDetail';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
+import AIChatbot from './components/AIChatbot';
 import { translations } from './translations';
 import { createClient } from '@supabase/supabase-js';
 
@@ -36,6 +37,7 @@ export interface Visit {
   id: number;
   timestamp: string;
   page?: string;
+  ip_address?: string;
 }
 
 const App: React.FC = () => {
@@ -50,6 +52,8 @@ const App: React.FC = () => {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [rtStatus, setRtStatus] = useState<string>('INIT');
   const [lastRtEvent, setLastRtEvent] = useState<string>('');
+  const [welcomeKey, setWelcomeKey] = useState(0); 
+  
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return localStorage.getItem('goldgen_admin_auth') === 'true';
   });
@@ -60,6 +64,16 @@ const App: React.FC = () => {
   });
 
   const t = translations[lang];
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('goldgen_theme', theme);
+  }, [theme]);
 
   const supabase = useMemo(() => {
     const v = (import.meta as any).env;
@@ -85,26 +99,38 @@ const App: React.FC = () => {
 
   const fetchVisits = useCallback(async () => {
     if (!supabase) return;
-    const { data } = await supabase.from('visits').select('*').order('timestamp', { ascending: false }).limit(50);
+    const { data } = await supabase.from('visits').select('*').order('timestamp', { ascending: false }).limit(100);
     if (data) setVisits(data);
   }, [supabase]);
 
-  // Track New Visit on Load
   useEffect(() => {
     if (!supabase || activePage === 'admin') return;
     
-    const logVisit = async () => {
+    const logVisitOncePerSession = async () => {
+      // Check if already logged this session
+      const alreadyLogged = sessionStorage.getItem('goldgen_logged_visit');
+      if (alreadyLogged) return;
+
       try {
+        // Fetch public IP address
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        const ip = ipData.ip;
+
         await supabase.from('visits').insert([{ 
           page: activePage || 'home',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          ip_address: ip
         }]);
+
+        // Mark as logged for this session
+        sessionStorage.setItem('goldgen_logged_visit', 'true');
       } catch (e) {
         console.error("Visit log failed", e);
       }
     };
     
-    logVisit();
+    logVisitOncePerSession();
   }, [supabase, activePage]);
 
   useEffect(() => {
@@ -143,6 +169,13 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  const handleBrandClick = useCallback(() => {
+    setWelcomeKey(prev => prev + 1); 
+    setActivePage('home');
+    setSelectedServiceId(null);
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleSaveSbConfig = (url: string, key: string) => {
     localStorage.setItem('goldgen_sb_config', JSON.stringify({ url, key }));
     window.location.reload();
@@ -160,8 +193,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-white dark:bg-slate-950 ${lang === 'ar' ? 'font-arabic' : ''}`}>
-      <LoadingScreen />
+    <div className={`min-h-screen transition-colors duration-500 bg-white dark:bg-slate-950 ${lang === 'ar' ? 'font-arabic' : ''}`}>
+      <LoadingScreen key={welcomeKey} />
       
       {activePage !== 'admin' && (
         <Navbar 
@@ -169,6 +202,7 @@ const App: React.FC = () => {
           onLangChange={setLang} 
           t={t.nav} 
           onNavigate={navigateTo}
+          onBrandClick={handleBrandClick}
           theme={theme}
           onToggleTheme={() => setTheme(p => p === 'light' ? 'dark' : 'light')}
         />
@@ -217,6 +251,7 @@ const App: React.FC = () => {
           <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={messages.filter(m => m.status === 'new').length} isCloudConnected={!!supabase} />
           <FloatingWhatsApp />
           <ScrollToTop />
+          <AIChatbot lang={lang} t={t} />
         </>
       )}
 

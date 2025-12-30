@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { X, Award, Target, Users, ArrowDown, ShieldCheck, Zap } from 'lucide-react';
 import Logo from './Logo';
@@ -130,7 +131,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose, lang, t }) => {
                     </div>
                  </div>
                  <div className="w-64 h-64 md:w-80 md:h-80 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center p-2 shadow-2xl animate-pulse">
-                    <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center overflow-hidden p-8">
+                    <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center overflow-hidden p-4">
                        <Logo className="w-full h-full" />
                     </div>
                  </div>
