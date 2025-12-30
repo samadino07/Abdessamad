@@ -43,34 +43,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
     m.subject?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const sqlFixUltimateV4 = `-- COPIER TOUT CE SCRIPT (V4 - ULTIMATE)
--- 1. Réinitialiser la publication Realtime de zéro
+  const sqlFixUltimateV5 = `-- SCRIPT DE RÉPARATION FINALE (V5 - PERMISSIONS DE LECTURE)
+-- Ce script force Supabase à autoriser la lecture des messages pour tous.
+
+-- 1. Réinitialiser la publication Realtime
 drop publication if exists supabase_realtime;
 create publication supabase_realtime;
-
--- 2. Ajouter la table et FORCER L'IDENTITÉ FULL (Important pour les données)
 alter publication supabase_realtime add table messages;
 alter table messages replica identity full;
 
--- 3. Accorder les permissions de lecture/écriture Publiques
+-- 2. ACCORDER LES DROITS DE LECTURE (SELECT) - CRUCIAL
+grant select on table messages to anon, authenticated;
+grant insert on table messages to anon, authenticated;
+grant update on table messages to anon, authenticated;
+grant delete on table messages to anon, authenticated;
 grant usage on schema public to anon, authenticated;
-grant all on table messages to anon, authenticated;
-grant all on all sequences in schema public to anon, authenticated;
 
--- 4. Désactiver puis Réactiver RLS avec une politique "Open"
-alter table messages disable row level security;
+-- 3. Politique RLS "OPEN" (Supprime les restrictions de filtrage)
 alter table messages enable row level security;
+drop policy if exists "Enable all for all" on messages;
+create policy "Enable all for all" on messages for all using (true) with check (true);
 
-drop policy if exists "Public Access" on messages;
-create policy "Public Access" on messages for all using (true) with check (true);
-
--- 5. Vérifier que Realtime est activé sur le projet (Dashboard Supabase > Database > Replication)`;
+-- 4. Notification
+-- Une fois exécuté, cliquez sur "Tester Propagation" dans le dashboard.`;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-slate-950 flex flex-col overflow-hidden text-slate-200 font-sans">
       
       {/* Top Header */}
-      <header className="bg-slate-900/90 backdrop-blur-2xl border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl relative z-10">
+      <header className="bg-slate-900/95 backdrop-blur-2xl border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl relative z-10">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-gold-500 rounded-xl flex items-center justify-center text-slate-950 font-black shadow-lg">G</div>
           <div>
@@ -78,7 +79,7 @@ create policy "Public Access" on messages for all using (true) with check (true)
             <div className="flex items-center gap-2">
                <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'ACTIF' ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
                   <Radio size={10} className={rtStatus === 'ACTIF' ? 'animate-pulse' : ''} /> 
-                  {rtStatus === 'ACTIF' ? 'SYNC TEMPS RÉEL' : `STATUT : ${rtStatus || 'OFFLINE'}`}
+                  {rtStatus === 'ACTIF' ? 'MONITEUR CONNECTÉ' : `STATUT : ${rtStatus || 'OFFLINE'}`}
                </span>
             </div>
           </div>
@@ -86,7 +87,7 @@ create policy "Public Access" on messages for all using (true) with check (true)
 
         <div className="flex items-center gap-3">
           <button onClick={onTestPropagation} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-             <Zap size={14} /> Tester Propagation
+             <Zap size={14} /> Tester Flux Cloud
           </button>
           <button onClick={handleRefresh} className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}>
             <RefreshCw size={18} />
@@ -107,40 +108,38 @@ create policy "Public Access" on messages for all using (true) with check (true)
         <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-30 shrink-0 max-h-[85vh] overflow-y-auto">
           <div className="max-w-5xl mx-auto">
             <div className="flex gap-4 mb-8 border-b border-white/5 pb-6">
-               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Système</button>
-               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparer SQL V4</button>
+               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>État Cloud</button>
+               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparer Lecture (V5)</button>
             </div>
 
             {activeTab === 'config' ? (
               <div className="grid md:grid-cols-2 gap-10 animate-in fade-in duration-300">
                 <div className="space-y-6">
-                  <div className={`p-6 rounded-3xl border transition-all duration-500 ${lastRtEvent ? 'bg-green-500/10 border-green-500/30' : 'bg-black/40 border-white/5'}`}>
-                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest mb-4"><Activity size={16} /> Moniteur Live</h3>
+                  <div className={`p-6 rounded-3xl border transition-all duration-500 ${lastRtEvent?.includes('ERREUR') ? 'bg-red-500/10 border-red-500/30' : lastRtEvent ? 'bg-green-500/10 border-green-500/30' : 'bg-black/40 border-white/5'}`}>
+                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest mb-4"><Activity size={16} /> Signal Diagnostic</h3>
                     <div className="space-y-3">
                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500 italic">Dernier Événement :</span>
-                          <span className={`${lastRtEvent ? 'text-green-400 font-black' : 'text-slate-600'} font-mono text-[10px]`}>
-                            {lastRtEvent || 'Aucun signal...'}
+                          <span className="text-slate-500 italic">Dernière Activité :</span>
+                          <span className={`${lastRtEvent?.includes('ERREUR') ? 'text-red-400' : 'text-green-400'} font-mono text-[10px]`}>
+                            {lastRtEvent || 'Aucun signal reçu...'}
                           </span>
-                       </div>
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500 italic">Connexion :</span>
-                          <span className="text-white font-black">{currentSbConfig?.source}</span>
                        </div>
                     </div>
                   </div>
                   <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-3 items-center">
                      <AlertCircle size={18} className="text-blue-500" />
-                     <p className="text-[10px] text-slate-400">Si vous cliquez sur "Tester Propagation" et que rien ne bouge ici, le script SQL est requis.</p>
+                     <p className="text-[10px] text-slate-400 leading-relaxed">
+                        Si vous voyez "INSERT" mais que la liste ne change pas, exécutez le script <strong>V5</strong> pour débloquer les droits de lecture.
+                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><HardDrive size={14} /> Config Cloud</h3>
+                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><HardDrive size={14} /> Identifiants</h3>
                   <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
                     <input type="text" placeholder="URL Supabase" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
-                    <input type="password" placeholder="Clé API" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500" value={sbKey} onChange={e => setSbKey(e.target.value)} />
-                    <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-2xl font-black uppercase text-[10px] tracking-widest">Appliquer</button>
+                    <input type="password" placeholder="Clé Anon" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500" value={sbKey} onChange={e => setSbKey(e.target.value)} />
+                    <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-2xl font-black uppercase text-[10px] tracking-widest">Sauvegarder</button>
                   </form>
                 </div>
               </div>
@@ -149,17 +148,17 @@ create policy "Public Access" on messages for all using (true) with check (true)
                 <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-[40px] space-y-4">
                    <div className="flex items-center gap-4 text-red-500">
                       <ShieldAlert size={32} />
-                      <h3 className="font-black uppercase tracking-tighter text-xl">Script SQL Ultime (V4)</h3>
+                      <h3 className="font-black uppercase tracking-tighter text-xl">Script SQL Déblocage V5</h3>
                    </div>
                    <div className="relative">
                       <pre className="bg-black/80 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[10px] overflow-x-auto whitespace-pre leading-relaxed">
-                        {sqlFixUltimateV4}
+                        {sqlFixUltimateV5}
                       </pre>
                       <button 
-                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimateV4); alert("Script V4 Copié !"); }}
-                        className="absolute bottom-4 right-4 bg-gold-500 text-slate-950 px-4 py-2 rounded-xl text-[9px] font-black uppercase"
+                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimateV5); alert("Script V5 Copié !"); }}
+                        className="absolute bottom-4 right-4 bg-gold-500 text-slate-950 px-4 py-2 rounded-xl text-[9px] font-black uppercase shadow-xl"
                       >
-                        Copier Script V4
+                        Copier Script V5
                       </button>
                    </div>
                 </div>
@@ -178,7 +177,7 @@ create policy "Public Access" on messages for all using (true) with check (true)
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                <input 
                  type="text" 
-                 placeholder="Chercher par nom, téléphone..." 
+                 placeholder="Rechercher..." 
                  className="w-full bg-slate-900 border border-white/10 rounded-2xl py-4 md:py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
@@ -187,11 +186,11 @@ create policy "Public Access" on messages for all using (true) with check (true)
              
              <div className="flex gap-4">
                 <div className="bg-slate-900 border border-white/5 rounded-2xl px-8 py-4 text-center">
-                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Nouveaux</p>
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">En attente</p>
                    <p className="text-gold-500 font-black text-2xl">{messages.filter(m => m.status === 'new').length}</p>
                 </div>
                 <div className="bg-slate-900 border border-white/5 rounded-2xl px-8 py-4 text-center">
-                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total</p>
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Cloud</p>
                    <p className="text-white font-black text-2xl">{messages.length}</p>
                 </div>
              </div>
@@ -201,7 +200,7 @@ create policy "Public Access" on messages for all using (true) with check (true)
              {filteredMessages.length === 0 ? (
                <div className="py-32 text-center opacity-20 flex flex-col items-center">
                   <MessageSquare size={100} className="mb-6" />
-                  <p className="text-2xl font-black uppercase tracking-tighter">Aucun message trouvé</p>
+                  <p className="text-2xl font-black uppercase tracking-tighter">Aucun message sur le Cloud</p>
                </div>
              ) : (
                filteredMessages.map((msg) => (

@@ -62,33 +62,38 @@ const App: React.FC = () => {
     
     if (!url || !key) return null;
     try {
-      return createClient(url, key);
+      return createClient(url, key, {
+        auth: { persistSession: false },
+        realtime: { params: { eventsPerSecond: 10 } }
+      });
     } catch (e) {
       return null;
     }
   }, [manualSbConfig]);
 
   const fetchMessages = useCallback(async () => {
-    if (!supabase) {
-      const local = localStorage.getItem('goldgen_messages');
-      if (local) setMessages(JSON.parse(local));
-      return;
-    }
+    if (!supabase) return;
 
     try {
+      console.log("Fetching from Cloud...");
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .order('date', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Cloud Fetch Error (Permissions ?):", error);
+        setLastRtEvent(`ERREUR FETCH: ${error.message}`);
+        return;
+      }
+
       if (data) {
+        console.log(`Cloud Data Sync: ${data.length} messages received.`);
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      const local = localStorage.getItem('goldgen_messages');
-      if (local) setMessages(JSON.parse(local));
+      console.error("System Error during fetch:", err);
     }
   }, [supabase]);
 
@@ -102,18 +107,21 @@ const App: React.FC = () => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('db-changes')
+      .channel('goldgen-live-v2')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          console.log('Realtime Payload:', payload);
+          console.log('--- EVENT DETECTED ---', payload);
           const time = new Date().toLocaleTimeString();
           setLastRtEvent(`${payload.eventType.toUpperCase()} à ${time}`);
-          fetchMessages();
+          
+          // Force a small delay to ensure DB consistency before refetch
+          setTimeout(() => fetchMessages(), 300);
         }
       )
       .subscribe((status) => {
+        console.log('Realtime Connection Status:', status);
         setRtStatus(status === 'SUBSCRIBED' ? 'ACTIF' : status.toUpperCase());
         if (status === 'SUBSCRIBED') fetchMessages();
       });
@@ -127,33 +135,31 @@ const App: React.FC = () => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
     
     if (supabase) {
-      try {
-        const { error } = await supabase.from('messages').insert([newMessage]);
-        if (!error) return;
-      } catch (e) {
-        console.error(e);
+      console.log("Attempting Cloud Insert...");
+      const { error } = await supabase.from('messages').insert([newMessage]);
+      if (error) {
+        console.error("Insert failed:", error);
+      } else {
+        console.log("Insert Successful!");
       }
     }
-
-    const local = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
-    const updated = [{ ...newMessage, id: Date.now().toString() }, ...local];
-    setMessages(updated as any);
-    localStorage.setItem('goldgen_messages', JSON.stringify(updated));
   }, [supabase]);
 
   const handleTestPropagation = async () => {
     if (!supabase) return;
     const testMsg = {
-      name: "TEST SYSTEM",
+      name: "DEBUG TEST",
       phone: "0000000000",
-      email: "test@goldgen.ma",
+      email: "debug@goldgen.ma",
       subject: "DIAGNOSTIC",
-      message: "Ceci est un test de propagation Realtime.",
+      message: `Test de flux à ${new Date().toLocaleTimeString()}`,
       date: new Date().toISOString(),
       status: 'new' as const
     };
-    await supabase.from('messages').insert([testMsg]);
-    setLastRtEvent("TEST ENVOYÉ...");
+    console.log("Sending Test Packet...");
+    const { error } = await supabase.from('messages').insert([testMsg]);
+    if (error) console.error("Test Send Error:", error);
+    setLastRtEvent("TEST ENVOYÉ - ATTENTE SIGNAL...");
   };
 
   const navigateTo = useCallback((page: ActivePage) => {
@@ -214,16 +220,12 @@ const App: React.FC = () => {
                 if (supabase) {
                   await supabase.from('messages').delete().eq('id', id);
                   fetchMessages();
-                } else {
-                  setMessages(prev => prev.filter(m => m.id !== id));
                 }
               }}
               onMarkRead={async (id) => {
                 if (supabase) {
                   await supabase.from('messages').update({ status: 'read' }).eq('id', id);
                   fetchMessages();
-                } else {
-                  setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' as const } : m));
                 }
               }}
               onSaveConfig={handleSaveSbConfig}
