@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Phone, Mail, Send, CheckCircle2, AlertCircle, MapPin, User, Tag, Coins } from 'lucide-react';
+import { Phone, Mail, Send, CheckCircle2, AlertCircle, MapPin, User, Tag, Coins, WifiOff } from 'lucide-react';
 import { CONTACT_DATA } from './constants';
 
 interface ContactProps {
@@ -12,6 +12,7 @@ interface ContactProps {
 const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -42,6 +43,7 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
     const error = validatePhone(formData.phone);
     if (error) {
       setPhoneError(error);
@@ -49,7 +51,6 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
     }
     setIsSending(true);
     
-    // Attempt sending to Cloud (via App.tsx logic)
     try {
       await onSendMessage(formData);
       setIsSending(false);
@@ -63,8 +64,9 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
         message: '' 
       });
       setTimeout(() => setIsSent(false), 5000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Critical Send Error:", err);
+      setErrorMsg(err.message || "Erreur de connexion au Cloud. Vérifiez les paramètres Admin.");
       setIsSending(false);
     }
   };
@@ -74,7 +76,7 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[60px] shadow-2xl overflow-hidden border border-slate-100 dark:border-white/5">
           <div className="grid lg:grid-cols-5">
-            {/* INFO PANEL (Gauche) */}
+            {/* INFO PANEL */}
             <div className="lg:col-span-2 bg-slate-900 p-8 md:p-12 lg:p-16 text-white relative overflow-hidden flex flex-col justify-center">
                <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
                
@@ -114,19 +116,27 @@ const Contact: React.FC<ContactProps> = ({ t, lang, onSendMessage }) => {
                </div>
             </div>
 
-            {/* FORM PANEL (Droit) */}
+            {/* FORM PANEL */}
             <div className={`lg:col-span-3 p-8 md:p-12 lg:p-20 ${lang === 'ar' ? 'text-right' : ''}`}>
                {isSent ? (
                  <div className="h-full flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-700 py-10">
-                    <div className="w-20 h-20 bg-gold-500 rounded-full flex items-center justify-center text-slate-950 mb-6 shadow-2xl shadow-gold-500/20">
+                    <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-slate-950 mb-6 shadow-2xl shadow-green-500/20">
                        <CheckCircle2 size={40} />
                     </div>
-                    <h4 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-4">Message Transmis au Cloud!</h4>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium text-base md:text-lg">Votre demande est maintenant visible sur tous les PC connectés.</p>
+                    <h4 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-4">Message Envoyé !</h4>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium text-base md:text-lg">Votre demande a été enregistrée avec succès.</p>
                  </div>
                ) : (
                  <>
                   <h4 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-8 md:mb-10">{t.formTitle}</h4>
+                  
+                  {errorMsg && (
+                    <div className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-4 text-red-500 animate-in fade-in slide-in-from-top-2">
+                      <WifiOff size={24} className="shrink-0" />
+                      <p className="text-xs font-black uppercase tracking-tight leading-relaxed">{errorMsg}</p>
+                    </div>
+                  )}
+
                   <form className="space-y-6 md:space-y-8" onSubmit={handleSubmit}>
                     <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
                       <div className="space-y-2 md:space-y-3">

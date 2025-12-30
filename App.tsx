@@ -63,8 +63,7 @@ const App: React.FC = () => {
     if (!url || !key) return null;
     try {
       return createClient(url, key, {
-        auth: { persistSession: false },
-        realtime: { params: { eventsPerSecond: 10 } }
+        auth: { persistSession: false }
       });
     } catch (e) {
       return null;
@@ -75,25 +74,23 @@ const App: React.FC = () => {
     if (!supabase) return;
 
     try {
-      console.log("[DB] Tentative de lecture des messages...");
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .order('date', { ascending: false });
       
       if (error) {
-        console.error("[DB] Erreur fatale de lecture :", error);
-        setLastRtEvent(`ERREUR LECTURE: ${error.message}`);
+        console.error("[CLOUD] Error:", error);
+        setLastRtEvent(`ERREUR: ${error.message}`);
         return;
       }
 
       if (data) {
-        console.log(`[DB] Succès : ${data.length} messages récupérés.`);
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("[System] Exception lors du fetch:", err);
+      console.error("[SYSTEM] Fetch crash:", err);
     }
   }, [supabase]);
 
@@ -107,16 +104,13 @@ const App: React.FC = () => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('goldgen-live-final')
+      .channel('goldgen-v8-final')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          console.log('[REALTIME] Événement détecté :', payload);
           const time = new Date().toLocaleTimeString();
           setLastRtEvent(`${payload.eventType.toUpperCase()} à ${time}`);
-          
-          // Mise à jour immédiate
           fetchMessages();
         }
       )
@@ -131,43 +125,35 @@ const App: React.FC = () => {
   }, [supabase, fetchMessages]);
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
-    const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
-    
-    if (supabase) {
-      console.log("[DB] Envoi du message au Cloud...");
-      const { error } = await supabase.from('messages').insert([newMessage]);
-      
-      if (error) {
-        console.error("[DB] L'envoi a échoué :", error);
-        throw error; // On propage l'erreur pour que Contact.tsx puisse l'afficher
-      } else {
-        console.log("[DB] Message envoyé avec succès !");
-        // Forcer le fetch immédiatement sans attendre le realtime
-        await fetchMessages();
-      }
+    if (!supabase) {
+      throw new Error("DÉTAIL: La connexion au Cloud n'est pas configurée. Veuillez contacter l'administrateur.");
     }
+
+    const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
+    const { error } = await supabase.from('messages').insert([newMessage]);
+    
+    if (error) {
+      console.error("[DATABASE ERROR]", error);
+      throw error;
+    }
+
+    fetchMessages();
   }, [supabase, fetchMessages]);
 
   const handleTestPropagation = async () => {
     if (!supabase) return;
     const testMsg = {
-      name: "TEST SYSTEME",
-      phone: "0000000000",
-      email: "test@goldgen.ma",
-      subject: "DIAGNOSTIC",
-      message: `Diagnostic manuel initié à ${new Date().toLocaleTimeString()}`,
+      name: "TEST V8",
+      phone: "0800000000",
+      email: "v8@goldgen.ma",
+      subject: "FINAL TEST",
+      message: `Diagnostic V8 à ${new Date().toLocaleTimeString()}`,
       date: new Date().toISOString(),
       status: 'new' as const
     };
-    console.log("[DB] Envoi d'un paquet de test...");
     const { error } = await supabase.from('messages').insert([testMsg]);
-    if (error) {
-      console.error("[DB] Erreur de test :", error);
-      setLastRtEvent(`ECHEC TEST: ${error.message}`);
-    } else {
-      setLastRtEvent("TEST ENVOYÉ ! Rafraîchissement...");
-      await fetchMessages();
-    }
+    if (error) setLastRtEvent(`ERREUR: ${error.message}`);
+    else fetchMessages();
   };
 
   const navigateTo = useCallback((page: ActivePage) => {
