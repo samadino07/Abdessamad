@@ -59,14 +59,10 @@ const App: React.FC = () => {
     const url = v?.VITE_SUPABASE_URL || manualSbConfig?.url;
     const key = v?.VITE_SUPABASE_KEY || manualSbConfig?.key;
     
-    if (!url || !key) {
-      console.warn("Supabase credentials missing. Cloud sync disabled.");
-      return null;
-    }
+    if (!url || !key) return null;
     try {
       return createClient(url, key);
     } catch (e) {
-      console.error("Supabase client init failed:", e);
       return null;
     }
   }, [manualSbConfig]);
@@ -84,42 +80,41 @@ const App: React.FC = () => {
         .select('*')
         .order('date', { ascending: false });
       
-      if (error) {
-        console.error("Supabase error fetching messages:", error.message);
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("Fetch Cloud Messages Failed:", err);
-      // Fallback local en cas de coupure internet
+      console.error("Fetch Failed", err);
       const local = localStorage.getItem('goldgen_messages');
       if (local) setMessages(JSON.parse(local));
     }
   }, [supabase]);
 
-  // High-reliability Real-time Sync
+  // Handle Page Changes
   useEffect(() => {
-    fetchMessages();
-    
+    if (activePage === 'admin' && isAdminAuthenticated) {
+      fetchMessages();
+    }
+  }, [activePage, isAdminAuthenticated, fetchMessages]);
+
+  // Real-time Sync
+  useEffect(() => {
     if (!supabase) return;
 
-    // Specific channel for messages table
     const channel = supabase
-      .channel('messages_realtime_sync')
-      .on(
-        'postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages' }, 
-        (payload) => {
-          console.log('Real-time update from Supabase:', payload);
-          fetchMessages();
-        }
-      )
+      .channel('db_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+        console.log('Real-time change detected!', payload);
+        fetchMessages();
+      })
       .subscribe((status) => {
-        console.log('Supabase real-time status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully connected to Supabase Realtime');
+          fetchMessages(); // Initial fetch when subscribed
+        }
       });
 
     return () => {
@@ -130,22 +125,17 @@ const App: React.FC = () => {
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
     
-    // Always attempt Cloud first for cross-device sync
     if (supabase) {
       try {
         const { error } = await supabase.from('messages').insert([newMessage]);
-        if (!error) {
-          console.log("Success: Message pushed to Cloud.");
-          return;
-        }
-        console.error("Cloud insert error:", error.message);
+        if (!error) return;
+        console.error("Supabase insert error:", error);
       } catch (e) {
-        console.error("Cloud connection failed:", e);
+        console.error("Cloud connection failed", e);
       }
     }
 
-    // Local fallback only if Cloud fails
-    console.warn("Saving message locally (Device-only). Synchronisation disabled.");
+    // Fallback Local (Only visible on the sender's device)
     const local = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
     const updated = [{ ...newMessage, id: Date.now().toString() }, ...local];
     setMessages(updated as any);
@@ -162,7 +152,6 @@ const App: React.FC = () => {
     const config = { url, key };
     setManualSbConfig(config);
     localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
-    // Force reload to apply new config globally
     window.location.reload();
   };
 
@@ -205,14 +194,20 @@ const App: React.FC = () => {
                 navigateTo('home');
               }}
               onDelete={async (id) => {
-                if (supabase) await supabase.from('messages').delete().eq('id', id);
-                else setMessages(prev => prev.filter(m => m.id !== id));
-                fetchMessages();
+                if (supabase) {
+                  await supabase.from('messages').delete().eq('id', id);
+                  fetchMessages();
+                } else {
+                  setMessages(prev => prev.filter(m => m.id !== id));
+                }
               }}
               onMarkRead={async (id) => {
-                if (supabase) await supabase.from('messages').update({ status: 'read' }).eq('id', id);
-                else setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' as const } : m));
-                fetchMessages();
+                if (supabase) {
+                  await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+                  fetchMessages();
+                } else {
+                  setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' as const } : m));
+                }
               }}
               onSaveConfig={handleSaveSbConfig}
               currentSbConfig={{
