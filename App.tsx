@@ -47,7 +47,6 @@ const App: React.FC = () => {
   });
   const [pageTransition, setPageTransition] = useState(false);
   
-  // Local Config Fallback if Vercel Env variables fail
   const [manualSbConfig, setManualSbConfig] = useState<{url: string, key: string} | null>(() => {
     const saved = localStorage.getItem('goldgen_sb_config');
     return saved ? JSON.parse(saved) : null;
@@ -55,28 +54,35 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
-  // Supabase Client - Robust Initialization
+  // SUPABASE CONFIG DETECTION
+  const supabaseConfig = useMemo(() => {
+    // Vite requires import.meta.env. In browser, process.env is usually undefined.
+    // Casting to any to avoid TS meta-property errors.
+    const v = (import.meta as any).env;
+    const envUrl = v?.VITE_SUPABASE_URL;
+    const envKey = v?.VITE_SUPABASE_KEY;
+    
+    return {
+      url: envUrl || manualSbConfig?.url || '',
+      key: envKey || manualSbConfig?.key || '',
+      source: envUrl ? 'Vercel Env' : manualSbConfig?.url ? 'Manual' : 'None'
+    };
+  }, [manualSbConfig]);
+
   const supabase = useMemo(() => {
-    // Fixed: Using process.env instead of import.meta.env to resolve TypeScript ImportMeta property errors
-    const envUrl = process.env.VITE_SUPABASE_URL;
-    const envKey = process.env.VITE_SUPABASE_KEY;
-    
-    const url = envUrl || manualSbConfig?.url;
-    const key = envKey || manualSbConfig?.key;
-    
-    if (!url || !key) return null;
+    if (!supabaseConfig.url || !supabaseConfig.key) return null;
     try {
-      return createClient(url, key);
+      return createClient(supabaseConfig.url, supabaseConfig.key);
     } catch (e) {
-      console.error("Supabase fail", e);
+      console.error("Supabase creation failed", e);
       return null;
     }
-  }, [manualSbConfig]);
+  }, [supabaseConfig]);
 
   const fetchMessages = useCallback(async () => {
     if (!supabase) {
-      const localData = localStorage.getItem('goldgen_messages');
-      if (localData) setMessages(JSON.parse(localData));
+      const local = localStorage.getItem('goldgen_messages');
+      if (local) setMessages(JSON.parse(local));
       return;
     }
 
@@ -89,27 +95,26 @@ const App: React.FC = () => {
       if (!error && data) {
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
+      } else if (error) {
+        console.error("Supabase fetch error:", error.message);
       }
     } catch (err) {
-      console.error("Cloud fetch error:", err);
+      console.error("Critical fetch error:", err);
     }
   }, [supabase]);
 
-  // Global Real-time Sync
+  // Global Sync logic
   useEffect(() => {
     fetchMessages();
     
     if (supabase) {
-      // Listen to 'INSERT', 'UPDATE', 'DELETE' events from ANY device
       const channel = supabase
-        .channel('db_sync_global')
+        .channel('public:messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-          console.log('Real-time update received:', payload);
-          fetchMessages(); // Refresh UI for everyone
+          console.log("Realtime Sync Triggered:", payload.eventType);
+          fetchMessages();
         })
-        .subscribe((status) => {
-          console.log('Supabase sync status:', status);
-        });
+        .subscribe();
 
       return () => {
         supabase.removeChannel(channel);
@@ -122,25 +127,21 @@ const App: React.FC = () => {
     
     if (supabase) {
       const { error } = await supabase.from('messages').insert([newMessage]);
-      if (!error) {
-        // fetchMessages() will be triggered by real-time listener
-        return;
-      }
-      console.error("Error inserting to Cloud:", error);
+      if (!error) return; 
+      console.error("Cloud insert failed, falling back to local:", error.message);
     }
 
-    // Local-only Fallback (France PC or Safi PC if offline)
-    const localMsgs = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
-    const updated = [{ ...newMessage, id: Date.now().toString() }, ...localMsgs];
+    const current = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
+    const updated = [{ ...newMessage, id: Date.now().toString() }, ...current];
     setMessages(updated as any);
     localStorage.setItem('goldgen_messages', JSON.stringify(updated));
-  }, [supabase, fetchMessages]);
+  }, [supabase]);
 
   const handleSaveSbConfig = (url: string, key: string) => {
     const config = { url, key };
     setManualSbConfig(config);
     localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
-    setTimeout(fetchMessages, 500);
+    window.location.reload(); // Refresh to re-init client
   };
 
   const handleLogout = () => {
@@ -204,12 +205,11 @@ const App: React.FC = () => {
               }
             }}
             onSaveConfig={handleSaveSbConfig}
-            currentSbConfig={supabase ? { 
-              // Fixed: Using process.env instead of import.meta.env to resolve TypeScript ImportMeta property errors
-              url: process.env.VITE_SUPABASE_URL || manualSbConfig?.url, 
-              key: process.env.VITE_SUPABASE_KEY || manualSbConfig?.key, 
-              source: process.env.VITE_SUPABASE_URL ? 'env' : 'manual' 
-            } : null}
+            currentSbConfig={{
+              url: supabaseConfig.url,
+              key: supabaseConfig.key,
+              source: supabaseConfig.source
+            }}
           />
         ) : (
           <AdminLogin onClose={() => navigateTo('home')} onSuccess={() => {
