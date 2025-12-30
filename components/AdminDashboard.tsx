@@ -96,7 +96,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
             <div className="flex items-center gap-2 mt-0.5 md:mt-1">
               <span className={`w-2 h-2 rounded-full ${currentSbConfig ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
               <p className="text-slate-400 text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em]">
-                {currentSbConfig?.source === 'env' ? 'Vercel Cloud' : currentSbConfig ? 'Manual Cloud' : 'Local Only'}
+                {currentSbConfig?.source === 'env' ? 'Vercel Cloud' : currentSbConfig?.source === 'manual' ? 'Manual Cloud' : 'Local Only'}
               </p>
             </div>
           </div>
@@ -246,7 +246,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                   </div>
                   <div>
                     <h4 className="text-white font-black uppercase text-[10px] md:text-sm tracking-widest">Base Cloud</h4>
-                    <p className="text-slate-500 text-[6px] md:text-[10px] font-bold mt-0.5 md:mt-1 uppercase tracking-widest">Supabase Sync • Active</p>
+                    <p className="text-slate-500 text-[6px] md:text-[10px] font-bold mt-0.5 md:mt-1 uppercase tracking-widest">Supabase Sync • Real-time Active</p>
                   </div>
                 </div>
                 <div className="hidden sm:block text-right">
@@ -274,7 +274,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                     <thead>
                       <tr className="bg-white/[0.02] text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5">
                         <th className="px-10 py-8">Date d'arrivée</th>
-                        <th className="px-10 py-8">Client Lead</th>
+                        <th className="px-10 py-8">Client Lead (Qui a envoyé ?)</th>
                         <th className="px-10 py-8">Projet & Budget</th>
                         <th className="px-10 py-8">Message</th>
                         <th className="px-10 py-8 text-center">Action Admin</th>
@@ -294,19 +294,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                           </td>
                           <td className="px-10 py-8">
                              <div className="flex flex-col">
-                                <span className="text-white font-black text-xl flex items-center gap-3">
+                                <span className="text-white font-black text-2xl flex items-center gap-3 drop-shadow-sm">
                                   {msg.name}
                                   {msg.status === 'new' && (
-                                    <span className="bg-yellow-500 text-slate-950 text-[8px] px-2.5 py-1 rounded-full font-black uppercase tracking-tighter shadow-lg shadow-yellow-500/20">Lead</span>
+                                    <span className="bg-yellow-500 text-slate-950 text-[8px] px-2.5 py-1 rounded-full font-black uppercase tracking-tighter shadow-lg shadow-yellow-500/20">Lead Actif</span>
                                   )}
                                 </span>
-                                <div className="flex items-center gap-4 mt-2">
-                                  <a href={`tel:${msg.phone}`} className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold hover:text-gold-500 transition-colors">
-                                    <Phone size={10} /> {msg.phone}
+                                <div className="flex items-center gap-4 mt-3">
+                                  <a href={`tel:${msg.phone}`} className="flex items-center gap-1.5 text-slate-300 text-sm font-black hover:text-gold-500 transition-colors bg-white/5 px-3 py-1 rounded-lg border border-white/5">
+                                    <Phone size={12} className="text-yellow-500" /> {msg.phone}
                                   </a>
-                                  <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
-                                  <a href={`mailto:${msg.email}`} className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold hover:text-gold-500 transition-colors">
-                                    <Mail size={10} /> {msg.email}
+                                  <a href={`mailto:${msg.email}`} className="flex items-center gap-1.5 text-slate-400 text-xs font-bold hover:text-gold-500 transition-colors">
+                                    <Mail size={12} /> {msg.email}
                                   </a>
                                 </div>
                              </div>
@@ -375,7 +374,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                               <Calendar size={12} className="text-yellow-500" />
                               {new Date(msg.date).toLocaleDateString()} • {new Date(msg.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                            </div>
-                           <h4 className="text-white font-black text-lg flex items-center gap-2 mt-1">
+                           <h4 className="text-white font-black text-xl flex items-center gap-2 mt-2">
                               {msg.name}
                               {msg.status === 'new' && (
                                 <span className="bg-yellow-500 text-slate-950 text-[7px] px-2 py-0.5 rounded-full font-black uppercase">Nouveau</span>
@@ -399,8 +398,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                       </div>
 
                       <div className="flex flex-wrap gap-4 pt-2">
-                        <a href={`tel:${msg.phone}`} className="flex items-center gap-2 text-slate-400 text-[10px] font-bold bg-white/5 px-3 py-2 rounded-xl border border-white/5">
-                          <Phone size={12} className="text-yellow-500" /> {msg.phone}
+                        <a href={`tel:${msg.phone}`} className="flex items-center gap-2 text-slate-100 text-xs font-black bg-white/5 px-4 py-2.5 rounded-xl border border-white/5">
+                          <Phone size={14} className="text-yellow-500" /> {msg.phone}
                         </a>
                         <a href={`mailto:${msg.email}`} className="flex items-center gap-2 text-slate-400 text-[10px] font-bold bg-white/5 px-3 py-2 rounded-xl border border-white/5 overflow-hidden max-w-[200px]">
                           <Mail size={12} className="text-yellow-500 shrink-0" /> <span className="truncate">{msg.email}</span>
@@ -414,20 +413,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                                 onMarkRead(msg.id);
                                 showToast("Marqué comme traité", "success");
                               }}
-                              className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-500/10 text-green-500 rounded-xl font-black uppercase text-[9px] border border-green-500/20 active:scale-95"
+                              className="flex-1 flex items-center justify-center gap-2 py-4 bg-green-500/10 text-green-500 rounded-xl font-black uppercase text-[10px] border border-green-500/20 active:scale-95"
                             >
                               <CheckCircle size={14} /> Traiter
                             </button>
                          )}
                          <a 
                             href={`mailto:${msg.email}?subject=Réponse GOLDGEN`}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-500/10 text-blue-500 rounded-xl font-black uppercase text-[9px] border border-blue-500/20 active:scale-95"
+                            className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-500/10 text-blue-500 rounded-xl font-black uppercase text-[10px] border border-blue-500/20 active:scale-95"
                          >
                             <ExternalLink size={14} /> Répondre
                          </a>
                          <button 
                             onClick={() => setDeleteConfirmId(msg.id)}
-                            className="p-3 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20 active:scale-95"
+                            className="p-4 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20 active:scale-95"
                          >
                             <Trash2 size={14} />
                          </button>

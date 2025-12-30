@@ -45,6 +45,12 @@ const App: React.FC = () => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [pageTransition, setPageTransition] = useState(false);
   
+  // Manual Supabase Config State
+  const [manualSbConfig, setManualSbConfig] = useState<{url: string, key: string} | null>(() => {
+    const saved = localStorage.getItem('goldgen_sb_config');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const t = translations[lang];
 
   // Theme Toggle Effect
@@ -71,10 +77,10 @@ const App: React.FC = () => {
     }, 400);
   }, [activePage]);
 
-  // Safe Supabase Initialization
+  // Safe Supabase Initialization (Env or Manual)
   const supabase = useMemo(() => {
-    const url = (import.meta as any).env?.VITE_SUPABASE_URL;
-    const key = (import.meta as any).env?.VITE_SUPABASE_KEY;
+    const url = (import.meta as any).env?.VITE_SUPABASE_URL || manualSbConfig?.url;
+    const key = (import.meta as any).env?.VITE_SUPABASE_KEY || manualSbConfig?.key;
     if (!url || !key) return null;
     try {
       return createClient(url, key);
@@ -82,7 +88,7 @@ const App: React.FC = () => {
       console.warn("Supabase initialization failed:", e);
       return null;
     }
-  }, []);
+  }, [manualSbConfig]);
 
   const fetchMessages = useCallback(async () => {
     if (!supabase) {
@@ -103,11 +109,32 @@ const App: React.FC = () => {
     }
   }, [supabase]);
 
+  // Real-time Subscription and Fetching
   useEffect(() => {
     fetchMessages();
+    
+    if (supabase) {
+      const channel = supabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setMessages(prev => [payload.new as Message, ...prev]);
+          } else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+          }
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+    
     const authStatus = sessionStorage.getItem('goldgen_admin_auth');
     if (authStatus === 'true') setIsAdminAuthenticated(true);
-  }, [fetchMessages]);
+  }, [supabase, fetchMessages]);
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
@@ -115,17 +142,23 @@ const App: React.FC = () => {
     if (supabase) {
       const { error } = await supabase.from('messages').insert([newMessage]);
       if (!error) {
-        fetchMessages();
+        // Fetch is handled by real-time subscription
         return;
       }
     }
 
-    // Fallback to localStorage if Supabase fails or is not configured
+    // Fallback to localStorage
     const currentLocal = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
     const updated = [{ ...newMessage, id: Date.now().toString() }, ...currentLocal];
     setMessages(updated as any);
     localStorage.setItem('goldgen_messages', JSON.stringify(updated));
-  }, [supabase, fetchMessages]);
+  }, [supabase]);
+
+  const handleSaveSbConfig = (url: string, key: string) => {
+    const config = { url, key };
+    setManualSbConfig(config);
+    localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
+  };
 
   const renderPage = () => {
     switch (activePage) {
@@ -147,7 +180,6 @@ const App: React.FC = () => {
             onDelete={async (id) => {
               if (supabase) {
                 await supabase.from('messages').delete().eq('id', id);
-                fetchMessages();
               } else {
                 const updated = messages.filter(m => m.id !== id);
                 setMessages(updated);
@@ -157,15 +189,18 @@ const App: React.FC = () => {
             onMarkRead={async (id) => {
               if (supabase) {
                 await supabase.from('messages').update({ status: 'read' }).eq('id', id);
-                fetchMessages();
               } else {
                 const updated = messages.map(m => m.id === id ? { ...m, status: 'read' as const } : m);
                 setMessages(updated);
                 localStorage.setItem('goldgen_messages', JSON.stringify(updated));
               }
             }}
-            onSaveConfig={() => {}}
-            currentSbConfig={supabase ? { url: (import.meta as any).env.VITE_SUPABASE_URL, key: (import.meta as any).env.VITE_SUPABASE_KEY, source: 'env' } : null}
+            onSaveConfig={handleSaveSbConfig}
+            currentSbConfig={supabase ? { 
+              url: (import.meta as any).env?.VITE_SUPABASE_URL || manualSbConfig?.url, 
+              key: (import.meta as any).env?.VITE_SUPABASE_KEY || manualSbConfig?.key, 
+              source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'env' : 'manual' 
+            } : null}
           />
         ) : (
           <AdminLogin onClose={() => navigateTo('home')} onSuccess={() => setIsAdminAuthenticated(true)} />
