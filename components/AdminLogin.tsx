@@ -33,17 +33,17 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[25000] flex items-center justify-center p-6 overflow-hidden">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-950 overflow-hidden">
       {/* Immersive Backdrop */}
       <div 
-        className={`absolute inset-0 bg-slate-950/98 backdrop-blur-2xl transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-slate-950/80 backdrop-blur-xl transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       ></div>
 
       {/* Login Box */}
-      <div className={`relative w-full max-w-md bg-slate-900 border border-white/10 rounded-[40px] p-8 md:p-12 shadow-[0_0_100px_rgba(234,179,8,0.15)] transition-all duration-500 ${
+      <div className={`relative w-full max-w-md bg-slate-900 border border-white/10 rounded-[40px] p-8 md:p-12 shadow-[0_0_100px_rgba(234,179,8,0.15)] transition-all duration-500 z-10 ${
         isLoaded ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95'
-      } ${isShake ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+      } ${isShake ? 'animate-shake' : ''}`}>
         
         <button 
           onClick={onClose}
@@ -57,7 +57,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onClose, onSuccess }) => {
             <Lock size={36} />
           </div>
           <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2">Accès Restreint</h2>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Administration GOLDGEN</p>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Administration GOLDGEN</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -84,7 +84,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onClose, onSuccess }) => {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-red-500 text-xs font-bold uppercase tracking-wider justify-center animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2 text-red-500 text-[10px] font-black uppercase tracking-widest justify-center animate-in fade-in slide-in-from-top-1">
               <AlertCircle size={14} />
               <span>Mot de passe incorrect</span>
             </div>
@@ -99,7 +99,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onClose, onSuccess }) => {
           </button>
         </form>
 
-        <p className="mt-8 text-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+        <p className="mt-8 text-center text-[8px] text-slate-600 font-black uppercase tracking-[0.3em]">
           Système de sécurité GOLDGEN • 2025
         </p>
       </div>
@@ -109,6 +109,9 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onClose, onSuccess }) => {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-10px); }
           75% { transform: translateX(10px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
         }
       `}} />
     </div>

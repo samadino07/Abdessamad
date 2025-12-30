@@ -54,30 +54,19 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
-  // SUPABASE CONFIG DETECTION
-  const supabaseConfig = useMemo(() => {
-    // Vite requires import.meta.env. In browser, process.env is usually undefined.
-    // Casting to any to avoid TS meta-property errors.
-    const v = (import.meta as any).env;
-    const envUrl = v?.VITE_SUPABASE_URL;
-    const envKey = v?.VITE_SUPABASE_KEY;
-    
-    return {
-      url: envUrl || manualSbConfig?.url || '',
-      key: envKey || manualSbConfig?.key || '',
-      source: envUrl ? 'Vercel Env' : manualSbConfig?.url ? 'Manual' : 'None'
-    };
-  }, [manualSbConfig]);
-
+  // Robust Supabase Initialization
   const supabase = useMemo(() => {
-    if (!supabaseConfig.url || !supabaseConfig.key) return null;
+    const v = (import.meta as any).env;
+    const url = v?.VITE_SUPABASE_URL || manualSbConfig?.url;
+    const key = v?.VITE_SUPABASE_KEY || manualSbConfig?.key;
+    
+    if (!url || !key) return null;
     try {
-      return createClient(supabaseConfig.url, supabaseConfig.key);
+      return createClient(url, key);
     } catch (e) {
-      console.error("Supabase creation failed", e);
       return null;
     }
-  }, [supabaseConfig]);
+  }, [manualSbConfig]);
 
   const fetchMessages = useCallback(async () => {
     if (!supabase) {
@@ -95,23 +84,20 @@ const App: React.FC = () => {
       if (!error && data) {
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
-      } else if (error) {
-        console.error("Supabase fetch error:", error.message);
       }
     } catch (err) {
-      console.error("Critical fetch error:", err);
+      console.error("Cloud fetch error", err);
     }
   }, [supabase]);
 
-  // Global Sync logic
+  // Real-time Sync
   useEffect(() => {
     fetchMessages();
     
     if (supabase) {
       const channel = supabase
-        .channel('public:messages')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-          console.log("Realtime Sync Triggered:", payload.eventType);
+        .channel('db_global_sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
           fetchMessages();
         })
         .subscribe();
@@ -127,12 +113,11 @@ const App: React.FC = () => {
     
     if (supabase) {
       const { error } = await supabase.from('messages').insert([newMessage]);
-      if (!error) return; 
-      console.error("Cloud insert failed, falling back to local:", error.message);
+      if (!error) return;
     }
 
-    const current = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
-    const updated = [{ ...newMessage, id: Date.now().toString() }, ...current];
+    const local = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
+    const updated = [{ ...newMessage, id: Date.now().toString() }, ...local];
     setMessages(updated as any);
     localStorage.setItem('goldgen_messages', JSON.stringify(updated));
   }, [supabase]);
@@ -141,13 +126,13 @@ const App: React.FC = () => {
     const config = { url, key };
     setManualSbConfig(config);
     localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
-    window.location.reload(); // Refresh to re-init client
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const handleLogout = () => {
     setIsAdminAuthenticated(false);
     localStorage.removeItem('goldgen_admin_auth');
-    navigateTo('home');
+    setActivePage('home');
   };
 
   useEffect(() => {
@@ -155,8 +140,6 @@ const App: React.FC = () => {
     else document.documentElement.classList.remove('dark');
     localStorage.setItem('goldgen_theme', theme);
   }, [theme]);
-
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const navigateTo = useCallback((page: ActivePage) => {
     if (page === activePage) return;
@@ -169,56 +152,15 @@ const App: React.FC = () => {
     }, 400);
   }, [activePage]);
 
+  // Main Page Content
   const renderPage = () => {
     switch (activePage) {
-      case 'home':
-        return <Hero t={t.hero} lang={lang} onDiscover={() => navigateTo('expertise')} onNavigate={navigateTo} />;
-      case 'about':
-        return <About t={t.about} lang={lang} />;
-      case 'expertise':
-        return <Services t={t.services} lang={lang} onSelect={setSelectedServiceId} />;
-      case 'engagement':
-        return <HSE t={t.hse} lang={lang} />;
-      case 'contact':
-        return <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />;
-      case 'admin':
-        return isAdminAuthenticated ? (
-          <AdminDashboard 
-            messages={messages} 
-            onClose={() => navigateTo('home')} 
-            onRefresh={fetchMessages}
-            onLogout={handleLogout}
-            onDelete={async (id) => {
-              if (supabase) await supabase.from('messages').delete().eq('id', id);
-              else {
-                const updated = messages.filter(m => m.id !== id);
-                setMessages(updated);
-                localStorage.setItem('goldgen_messages', JSON.stringify(updated));
-              }
-            }}
-            onMarkRead={async (id) => {
-              if (supabase) await supabase.from('messages').update({ status: 'read' }).eq('id', id);
-              else {
-                const updated = messages.map(m => m.id === id ? { ...m, status: 'read' as const } : m);
-                setMessages(updated);
-                localStorage.setItem('goldgen_messages', JSON.stringify(updated));
-              }
-            }}
-            onSaveConfig={handleSaveSbConfig}
-            currentSbConfig={{
-              url: supabaseConfig.url,
-              key: supabaseConfig.key,
-              source: supabaseConfig.source
-            }}
-          />
-        ) : (
-          <AdminLogin onClose={() => navigateTo('home')} onSuccess={() => {
-            setIsAdminAuthenticated(true);
-            localStorage.setItem('goldgen_admin_auth', 'true');
-          }} />
-        );
-      default:
-        return <Hero t={t.hero} lang={lang} onDiscover={() => navigateTo('expertise')} onNavigate={navigateTo} />;
+      case 'home': return <Hero t={t.hero} lang={lang} onDiscover={() => navigateTo('expertise')} onNavigate={navigateTo} />;
+      case 'about': return <About t={t.about} lang={lang} />;
+      case 'expertise': return <Services t={t.services} lang={lang} onSelect={setSelectedServiceId} />;
+      case 'engagement': return <HSE t={t.hse} lang={lang} />;
+      case 'contact': return <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />;
+      default: return null;
     }
   };
 
@@ -226,33 +168,64 @@ const App: React.FC = () => {
     <div className={`min-h-screen bg-white dark:bg-slate-950 transition-colors duration-500 selection:bg-gold-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <LoadingScreen />
       
-      <Navbar 
-        currentLang={lang} 
-        onLangChange={setLang} 
-        t={t.nav} 
-        onNavigate={navigateTo}
-        isAdmin={isAdminAuthenticated}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      {/* Navbar visible uniquement sur le site principal */}
+      {activePage !== 'admin' && (
+        <Navbar 
+          currentLang={lang} 
+          onLangChange={setLang} 
+          t={t.nav} 
+          onNavigate={navigateTo}
+          theme={theme}
+          onToggleTheme={() => setTheme(p => p === 'light' ? 'dark' : 'light')}
+        />
+      )}
       
-      <main className={`transition-all duration-500 min-h-[80vh] ${pageTransition ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+      {/* Site Principal */}
+      <main className={`transition-all duration-500 ${pageTransition ? 'opacity-0 scale-95' : 'opacity-100 scale-100'} ${activePage === 'admin' ? 'hidden' : 'pt-20'}`}>
         {renderPage()}
       </main>
 
-      {activePage !== 'admin' && (
-        <Footer 
-          t={t.footer} 
-          lang={lang} 
-          onNavigate={navigateTo} 
-          unreadCount={messages.filter(m => m.status === 'new').length} 
-          isCloudConnected={!!supabase}
-        />
+      {/* Administration : rendu séparé pour éviter l'écran blanc lié aux transitions du main */}
+      {activePage === 'admin' && (
+        <div className="fixed inset-0 z-[500] bg-slate-950">
+          {isAdminAuthenticated ? (
+            <AdminDashboard 
+              messages={messages} 
+              onClose={() => navigateTo('home')} 
+              onRefresh={fetchMessages}
+              onLogout={handleLogout}
+              onDelete={async (id) => {
+                if (supabase) await supabase.from('messages').delete().eq('id', id);
+                else setMessages(m => m.filter(msg => msg.id !== id));
+              }}
+              onMarkRead={async (id) => {
+                if (supabase) await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+                else setMessages(m => m.map(msg => msg.id === id ? { ...msg, status: 'read' as const } : msg));
+              }}
+              onSaveConfig={handleSaveSbConfig}
+              currentSbConfig={{ 
+                url: (import.meta as any).env?.VITE_SUPABASE_URL || manualSbConfig?.url || '', 
+                key: (import.meta as any).env?.VITE_SUPABASE_KEY || manualSbConfig?.key || '', 
+                source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'Vercel Env' : 'Manual' 
+              }}
+            />
+          ) : (
+            <AdminLogin onClose={() => navigateTo('home')} onSuccess={() => {
+              setIsAdminAuthenticated(true);
+              localStorage.setItem('goldgen_admin_auth', 'true');
+            }} />
+          )}
+        </div>
       )}
 
-      <FloatingWhatsApp />
-      <AIChatbot lang={lang} t={t} />
-      <ScrollToTop />
+      {activePage !== 'admin' && (
+        <>
+          <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={messages.filter(m => m.status === 'new').length} isCloudConnected={!!supabase} />
+          <FloatingWhatsApp />
+          <AIChatbot lang={lang} t={t} />
+          <ScrollToTop />
+        </>
+      )}
 
       {selectedServiceId && (
         <ServiceDetail 
