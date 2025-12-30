@@ -1,10 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, Activity, Settings, RefreshCw, LogOut, Wifi, WifiOff, User, Tag, Coins, AlertTriangle, Database, CloudAlert, ArrowRight, Terminal, ShieldAlert, Cpu, HardDrive, Beaker, Check, AlertCircle, Radio, Zap } from 'lucide-react';
-import { Message } from '../App';
+import { X, Trash2, Phone, Calendar, CheckCircle, MessageSquare, Search, Activity, Settings, RefreshCw, LogOut, User, Tag, AlertTriangle, HardDrive, ShieldAlert, Zap, Radio, Users, Globe, Eye } from 'lucide-react';
+import { Message, Visit } from '../App';
 
 interface AdminDashboardProps {
   messages: Message[];
+  visits: Visit[];
   onClose: () => void;
   onRefresh: () => void;
   onLogout: () => void;
@@ -17,37 +18,24 @@ interface AdminDashboardProps {
   lastRtEvent?: string;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRefresh, onLogout, onDelete, onMarkRead, onSaveConfig, onTestPropagation, currentSbConfig, rtStatus, lastRtEvent }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, visits, onClose, onRefresh, onLogout, onDelete, onMarkRead, onSaveConfig, currentSbConfig, rtStatus, lastRtEvent }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'config' | 'fix'>('config');
   const [sbUrl, setSbUrl] = useState(currentSbConfig?.url || '');
   const [sbKey, setSbKey] = useState(currentSbConfig?.key || '');
-  const [activeTab, setActiveTab] = useState<'config' | 'fix'>('config');
-
-  useEffect(() => {
-    onRefresh();
-  }, []);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await onRefresh();
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
 
   const filteredMessages = messages.filter(m => 
     m.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    m.phone?.includes(searchTerm) ||
-    m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+    m.phone?.includes(searchTerm)
   );
 
-  const sqlUniversalFixV9 = `-- SCRIPT DE RÉPARATION V9 (LE PLUS SIMPLE)
--- 1. On supprime tout pour éviter les erreurs de structure
+  const sqlUniversalFixV10 = `-- SCRIPT DE RÉPARATION V10 (MESSAGES + VISITES)
 DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS visits;
 
--- 2. Création de la table avec ID auto-incrémenté
+-- 1. Table Messages
 CREATE TABLE messages (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   name TEXT NOT NULL,
@@ -60,105 +48,85 @@ CREATE TABLE messages (
   date TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. DÉSACTIVER TOUTE LA SÉCURITÉ (Obligatoire pour tester)
+-- 2. Table Visites
+CREATE TABLE visits (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  timestamp TIMESTAMPTZ DEFAULT NOW(),
+  page TEXT
+);
+
 ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
-
--- 4. Ouvrir les droits à tout le monde
+ALTER TABLE visits DISABLE ROW LEVEL SECURITY;
 GRANT ALL ON TABLE messages TO anon, authenticated, postgres, service_role;
+GRANT ALL ON TABLE visits TO anon, authenticated, postgres, service_role;
 
--- 5. Activer Realtime (Pour voir les messages arriver sans recharger)
 DROP PUBLICATION IF EXISTS supabase_realtime;
-CREATE PUBLICATION supabase_realtime FOR TABLE messages;`;
+CREATE PUBLICATION supabase_realtime FOR TABLE messages, visits;`;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-slate-950 flex flex-col overflow-hidden text-slate-200 font-sans">
       
-      {/* Top Header */}
-      <header className="bg-slate-900/95 backdrop-blur-2xl border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-gold-500 rounded-xl flex items-center justify-center text-slate-950 font-black shadow-lg">G</div>
-          <div>
-            <h1 className="text-white font-black uppercase tracking-tighter text-lg">GOLDGEN <span className="text-slate-500">ADMIN</span></h1>
+      {/* Header Admin */}
+      <header className="bg-slate-900/95 backdrop-blur-2xl border-b border-white/10 px-4 md:px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl relative z-20">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-black shadow-lg transition-colors ${lastRtEvent?.includes('VISITEUR') ? 'bg-green-400 animate-pulse' : 'bg-gold-500'}`}>G</div>
+          <div className="hidden sm:block">
+            <h1 className="text-white font-black uppercase tracking-tighter text-sm md:text-lg">GOLDGEN <span className="text-slate-500">ADMIN</span></h1>
             <div className="flex items-center gap-2">
-               <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'ACTIF' ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
+               <span className={`flex items-center gap-1.5 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'ACTIF' ? 'text-green-400 border-green-500/20 bg-green-500/5' : 'text-orange-400 border-orange-500/20 bg-orange-500/5'}`}>
                   <Radio size={10} className={rtStatus === 'ACTIF' ? 'animate-pulse' : ''} /> 
-                  {rtStatus === 'ACTIF' ? 'CLOUD CONNECTÉ' : `STATUT : ${rtStatus || 'DÉCONNECTÉ'}`}
+                  {rtStatus === 'ACTIF' ? 'SYSTÈME LIVE' : 'DÉCONNECTÉ'}
                </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button onClick={onTestPropagation} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">
-             <Zap size={14} /> Diagnostic V9
-          </button>
-          <button onClick={handleRefresh} className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}>
-            <RefreshCw size={18} />
-          </button>
-          <button onClick={() => setShowSettings(!showSettings)} className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-gold-500 text-slate-950 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className={`flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${lastRtEvent?.includes('VISITEUR') ? 'text-green-400 border-green-400/40 bg-green-400/10' : 'text-slate-400'}`}>
+             <Eye size={14} className={lastRtEvent?.includes('VISITEUR') ? 'animate-bounce' : ''} /> 
+             <span className="hidden xs:inline">Live:</span> {visits.length}
+          </div>
+          <button onClick={() => setShowSettings(!showSettings)} className={`p-2.5 md:p-3 rounded-xl border transition-all ${showSettings ? 'bg-gold-500 text-slate-900 border-gold-500' : 'bg-white/5 border-white/10'}`}>
             <Settings size={18} />
           </button>
-          <button onClick={onLogout} className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+          <button onClick={onLogout} className="p-2.5 md:p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all">
             <LogOut size={18} />
           </button>
-          <button onClick={onClose} className="p-3 bg-white/10 rounded-xl hover:bg-slate-800 transition-all border border-white/5">
+          <button onClick={onClose} className="p-2.5 md:p-3 bg-white/10 rounded-xl border border-white/5">
             <X size={18} />
           </button>
         </div>
       </header>
 
+      {/* Settings Panel */}
       {showSettings && (
-        <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-30 shrink-0 max-h-[85vh] overflow-y-auto">
+        <div className="bg-slate-900 border-b border-white/10 p-6 md:p-8 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-30 shrink-0 max-h-[80vh] overflow-y-auto">
           <div className="max-w-5xl mx-auto">
-            <div className="flex gap-4 mb-8 border-b border-white/5 pb-6">
-               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>État du Cloud</button>
-               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparation Forcée (SQL V9)</button>
+            <div className="flex gap-4 mb-8 border-b border-white/5 pb-4">
+               <button onClick={() => setActiveTab('config')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${activeTab === 'config' ? 'bg-gold-500 text-slate-950' : 'text-slate-400'}`}>Cloud</button>
+               <button onClick={() => setActiveTab('fix')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${activeTab === 'fix' ? 'bg-red-500 text-white' : 'text-slate-400'}`}>SQL V10</button>
             </div>
-
             {activeTab === 'config' ? (
-              <div className="grid md:grid-cols-2 gap-10 animate-in fade-in duration-300">
-                <div className="space-y-6">
-                  <div className={`p-6 rounded-3xl border transition-all duration-500 ${lastRtEvent?.includes('SYNC') ? 'bg-green-500/10 border-green-400/40' : 'bg-black/40 border-white/5'}`}>
-                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest mb-4"><Activity size={16} /> Diagnostic Live</h3>
-                    <div className="space-y-3">
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500 italic">Dernière activité :</span>
-                          <span className={`font-mono text-[10px] ${lastRtEvent?.includes('ERR') ? 'text-red-400' : 'text-green-400'}`}>
-                            {lastRtEvent || 'En attente de signal...'}
-                          </span>
-                       </div>
-                    </div>
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-black/20 p-6 rounded-2xl border border-white/5">
+                  <h3 className="text-gold-500 font-black text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} /> Log d'Événements</h3>
+                  <div className="text-[10px] font-mono text-slate-400 space-y-1">
+                    <p className="text-green-400">Dernier event: {lastRtEvent || 'Aucun'}</p>
+                    <p>Visites logged: {visits.length}</p>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><HardDrive size={14} /> Credentials</h3>
-                  <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
-                    <input type="text" placeholder="URL du Cloud" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
-                    <input type="password" placeholder="Clé Secrète" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500" value={sbKey} onChange={e => setSbKey(e.target.value)} />
-                    <button className="w-full py-4 bg-gold-500 text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-xl">Sauvegarder et Connecter</button>
-                  </form>
-                </div>
+                <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
+                  <input type="text" placeholder="Supabase URL" className="w-full bg-slate-950 border border-white/10 p-3 rounded-xl text-xs outline-none focus:border-gold-500" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
+                  <input type="password" placeholder="Supabase Key" className="w-full bg-slate-950 border border-white/10 p-3 rounded-xl text-xs outline-none focus:border-gold-500" value={sbKey} onChange={e => setSbKey(e.target.value)} />
+                  <button className="w-full py-3 bg-gold-500 text-slate-900 rounded-xl font-black uppercase text-[10px] shadow-lg">Enregistrer</button>
+                </form>
               </div>
             ) : (
-              <div className="animate-in fade-in duration-300 space-y-6">
-                <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-[40px] space-y-4">
-                   <div className="flex items-center gap-4 text-red-500">
-                      <ShieldAlert size={32} />
-                      <h3 className="font-black uppercase tracking-tighter text-xl text-white">Script SQL V9 (The Nuclear Reset)</h3>
-                   </div>
-                   <p className="text-slate-400 text-xs">Si le formulaire de contact ne marche pas, copiez ce script dans l'éditeur SQL de Supabase.</p>
-                   <div className="relative">
-                      <pre className="bg-black/80 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[10px] overflow-x-auto whitespace-pre leading-relaxed">
-                        {sqlUniversalFixV9}
-                      </pre>
-                      <button 
-                        onClick={() => { navigator.clipboard.writeText(sqlUniversalFixV9); alert("Script SQL V9 Copié !"); }}
-                        className="absolute bottom-4 right-4 bg-gold-500 text-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase shadow-xl"
-                      >
-                        Copier Script V9
-                      </button>
-                   </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                   <p className="text-xs text-slate-300 mb-4 font-bold flex items-center gap-2"><ShieldAlert size={14} /> Script de mise à jour pour le Tracking Live :</p>
+                   <pre className="bg-black/60 p-4 rounded-lg text-[9px] font-mono text-gold-500 overflow-x-auto whitespace-pre">{sqlUniversalFixV10}</pre>
+                   <button onClick={() => { navigator.clipboard.writeText(sqlUniversalFixV10); alert("Copié !"); }} className="mt-4 px-4 py-2 bg-gold-500 text-slate-950 rounded-lg text-[10px] font-black uppercase">Copier Script V10</button>
                 </div>
               </div>
             )}
@@ -166,81 +134,90 @@ CREATE PUBLICATION supabase_realtime FOR TABLE messages;`;
         </div>
       )}
 
-      {/* Main Messages Area */}
-      <div className="flex-grow overflow-y-auto p-4 md:p-8 relative z-10 bg-slate-950/50">
+      {/* Main Content */}
+      <div className="flex-grow overflow-y-auto p-4 md:p-8 bg-slate-950/50">
         <div className="max-w-6xl mx-auto">
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
+            <div className="bg-slate-900 border border-white/5 p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center">
+               <Users size={20} className="text-gold-500 mb-2" />
+               <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Visiteurs (Live)</p>
+               <p className="text-2xl md:text-3xl font-black text-white">{visits.length}</p>
+            </div>
+            <div className="bg-slate-900 border border-white/5 p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center">
+               <MessageSquare size={20} className="text-blue-500 mb-2" />
+               <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Nouveaux Messages</p>
+               <p className="text-2xl md:text-3xl font-black text-white">{messages.filter(m => m.status === 'new').length}</p>
+            </div>
+            <div className={`bg-slate-900 border p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center transition-all duration-1000 ${lastRtEvent?.includes('VISITEUR') ? 'border-green-500/50 scale-105 bg-green-500/5' : 'border-white/5'}`}>
+               <Globe size={20} className={`${lastRtEvent?.includes('VISITEUR') ? 'text-green-400 animate-spin' : 'text-slate-500'} mb-2`} />
+               <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Activité Site</p>
+               <p className="text-xs font-black text-slate-300 uppercase truncate max-w-full">
+                  {lastRtEvent?.includes('VISITEUR') ? 'Signal Reçu !' : 'En veille...'}
+               </p>
+            </div>
+            <div className="hidden lg:flex bg-slate-900 border border-white/5 p-6 rounded-3xl shadow-xl flex-col items-center justify-center text-center">
+               <Radio size={20} className="text-orange-500 mb-2 animate-pulse" />
+               <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Statut Serveur</p>
+               <p className="text-xs font-black text-green-400 uppercase tracking-widest">Connecté</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between mb-8">
              <div className="relative max-w-md w-full">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                <input 
                  type="text" 
-                 placeholder="Chercher dans les prospects..." 
-                 className="w-full bg-slate-900 border border-white/10 rounded-2xl py-4 md:py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
+                 placeholder="Chercher dans les messages..." 
+                 className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 md:py-4 pl-12 pr-6 text-sm text-white focus:border-gold-500 outline-none shadow-xl"
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
                />
              </div>
-             
-             <div className="flex gap-4">
-                <div className="bg-slate-900 border border-white/5 rounded-2xl px-8 py-4 text-center shadow-2xl min-w-[120px]">
-                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Nouveaux</p>
-                   <p className="text-gold-500 font-black text-2xl">{messages.filter(m => m.status === 'new').length}</p>
-                </div>
-                <div className="bg-slate-900 border border-white/5 rounded-2xl px-8 py-4 text-center shadow-2xl min-w-[120px]">
-                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total</p>
-                   <p className="text-white font-black text-2xl">{messages.length}</p>
-                </div>
-             </div>
+             <button onClick={onRefresh} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 text-slate-400 transition-all flex items-center gap-2 text-xs font-black uppercase">
+               <RefreshCw size={14} /> Actualiser
+             </button>
           </div>
 
-          <div className="space-y-6 pb-20">
+          <div className="space-y-4 pb-20">
              {filteredMessages.length === 0 ? (
-               <div className="py-32 text-center opacity-20 flex flex-col items-center">
-                  <MessageSquare size={100} className="mb-6 text-slate-600" />
-                  <p className="text-2xl font-black uppercase tracking-tighter">Base de données vide</p>
+               <div className="py-20 text-center opacity-20">
+                  <MessageSquare size={60} className="mx-auto mb-4" />
+                  <p className="text-lg font-black uppercase">Aucun message</p>
                </div>
              ) : (
                filteredMessages.map((msg) => (
-                 <div key={msg.id} className={`group bg-slate-900 border border-white/5 rounded-[40px] p-6 md:p-8 transition-all hover:bg-slate-800/80 ${msg.status === 'new' ? 'border-gold-500/20 shadow-[0_0_50px_rgba(234,179,8,0.05)]' : 'opacity-60'}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-                       
-                       <div className="flex items-center gap-6">
-                          <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[32px] flex items-center justify-center text-slate-950 shadow-xl shrink-0 ${msg.status === 'new' ? 'bg-gold-500' : 'bg-slate-700 text-slate-400'}`}>
-                             <User size={32} />
+                 <div key={msg.id} className={`group bg-slate-900 border rounded-[32px] p-6 transition-all hover:bg-slate-800/80 ${msg.status === 'new' ? 'border-gold-500/20 shadow-lg' : 'border-white/5 opacity-60'}`}>
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                       <div className="flex items-center gap-4 w-full lg:w-auto">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-slate-950 shadow-xl shrink-0 ${msg.status === 'new' ? 'bg-gold-500' : 'bg-slate-700'}`}>
+                             <User size={24} />
                           </div>
-                          <div>
-                             <h4 className="text-white text-2xl md:text-3xl font-black tracking-tight">{msg.name}</h4>
-                             <div className="flex flex-wrap gap-3 mt-3">
-                                <a href={`tel:${msg.phone}`} className="text-gold-500 font-black text-xs md:text-sm hover:text-white transition-colors flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">
-                                   <Phone size={14} /> {msg.phone}
-                                </a>
-                                <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">
-                                   <Calendar size={14} className="text-gold-500" /> {new Date(msg.date).toLocaleDateString()}
-                                </span>
+                          <div className="min-w-0 flex-grow">
+                             <h4 className="text-white text-lg font-black truncate">{msg.name}</h4>
+                             <div className="flex gap-4 mt-1 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                                <span className="flex items-center gap-1"><Phone size={10} className="text-gold-500" /> {msg.phone}</span>
+                                <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(msg.date).toLocaleDateString()}</span>
                              </div>
                           </div>
                        </div>
 
-                       <div className="bg-black/20 p-6 md:p-8 rounded-[32px] flex-grow lg:max-w-md border border-white/5">
-                          <div className="flex items-center gap-2 mb-4">
-                             <Tag size={14} className="text-gold-500" />
-                             <span className="text-white font-black uppercase text-[10px] tracking-widest">{msg.subject}</span>
-                          </div>
-                          <p className="text-slate-300 text-sm md:text-base leading-relaxed italic line-clamp-3">"{msg.message}"</p>
+                       <div className="bg-black/30 p-4 rounded-2xl flex-grow w-full lg:max-w-md border border-white/5">
+                          <p className="text-white text-[10px] font-black uppercase mb-1 tracking-widest flex items-center gap-1"><Tag size={10} className="text-gold-500" /> {msg.subject}</p>
+                          <p className="text-slate-400 text-xs italic line-clamp-2">"{msg.message}"</p>
                        </div>
 
-                       <div className="flex items-center gap-4 shrink-0">
+                       <div className="flex items-center gap-3 shrink-0">
                           {msg.status === 'new' && (
-                             <button onClick={() => onMarkRead(msg.id)} className="p-5 bg-green-500 text-slate-900 rounded-2xl hover:bg-green-400 transition-all shadow-lg hover:scale-105 active:scale-95">
-                                <CheckCircle size={28} />
+                             <button onClick={() => onMarkRead(msg.id)} className="p-4 bg-green-500 text-slate-950 rounded-xl hover:scale-105 transition-all shadow-lg">
+                                <CheckCircle size={20} />
                              </button>
                           )}
-                          <button onClick={() => setDeleteConfirmId(msg.id)} className="p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg">
-                             <Trash2 size={28} />
+                          <button onClick={() => setDeleteConfirmId(msg.id)} className="p-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+                             <Trash2 size={20} />
                           </button>
                        </div>
-
                     </div>
                  </div>
                ))
@@ -249,15 +226,16 @@ CREATE PUBLICATION supabase_realtime FOR TABLE messages;`;
         </div>
       </div>
 
+      {/* Delete Confirmation */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-slate-950/98 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-[48px] p-12 text-center shadow-2xl">
-             <AlertTriangle size={60} className="text-red-500 mx-auto mb-6" />
-             <h3 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">Supprimer?</h3>
-             <p className="text-slate-400 text-sm font-bold mb-10 leading-relaxed">Cette action effacera définitivement le prospect du Cloud.</p>
-             <div className="flex flex-col gap-4">
-                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="w-full py-5 bg-red-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all">Confirmer</button>
-                <button onClick={() => setDeleteConfirmId(null)} className="w-full py-5 bg-white/5 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Annuler</button>
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-slate-950/98 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-[40px] p-10 text-center shadow-2xl">
+             <AlertTriangle size={48} className="text-red-500 mx-auto mb-4" />
+             <h3 className="text-2xl font-black text-white mb-2 uppercase">Supprimer?</h3>
+             <p className="text-slate-400 text-xs mb-8">Action irréversible.</p>
+             <div className="flex flex-col gap-3">
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="w-full py-4 bg-red-500 text-white rounded-xl font-black uppercase text-[10px]">Confirmer</button>
+                <button onClick={() => setDeleteConfirmId(null)} className="w-full py-4 bg-white/5 text-white rounded-xl font-black uppercase text-[10px]">Annuler</button>
              </div>
           </div>
         </div>

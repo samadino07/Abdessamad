@@ -32,6 +32,12 @@ export interface Message {
   status: 'new' | 'read';
 }
 
+export interface Visit {
+  id: number;
+  timestamp: string;
+  page?: string;
+}
+
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('fr');
   const [theme, setTheme] = useState<Theme>(() => {
@@ -41,6 +47,7 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<ActivePage>('home');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
   const [rtStatus, setRtStatus] = useState<string>('INIT');
   const [lastRtEvent, setLastRtEvent] = useState<string>('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
@@ -72,96 +79,63 @@ const App: React.FC = () => {
 
   const fetchMessages = useCallback(async () => {
     if (!supabase) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (error) {
-        setLastRtEvent(`FETCH ERR: ${error.message}`);
-        return;
-      }
-
-      if (data) {
-        setMessages(data);
-        localStorage.setItem('goldgen_messages', JSON.stringify(data));
-      }
-    } catch (err) {
-      console.error("Fetch crash", err);
-    }
+    const { data } = await supabase.from('messages').select('*').order('date', { ascending: false });
+    if (data) setMessages(data);
   }, [supabase]);
 
+  const fetchVisits = useCallback(async () => {
+    if (!supabase) return;
+    const { data } = await supabase.from('visits').select('*').order('timestamp', { ascending: false }).limit(50);
+    if (data) setVisits(data);
+  }, [supabase]);
+
+  // Track New Visit on Load
   useEffect(() => {
-    if (activePage === 'admin' && isAdminAuthenticated) {
-      fetchMessages();
-    }
-  }, [activePage, isAdminAuthenticated, fetchMessages]);
+    if (!supabase || activePage === 'admin') return;
+    
+    const logVisit = async () => {
+      try {
+        await supabase.from('visits').insert([{ 
+          page: activePage || 'home',
+          timestamp: new Date().toISOString()
+        }]);
+      } catch (e) {
+        console.error("Visit log failed", e);
+      }
+    };
+    
+    logVisit();
+  }, [supabase, activePage]);
 
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('goldgen-v9-global')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        (payload) => {
-          setLastRtEvent(`UPDATE ${payload.eventType} @ ${new Date().toLocaleTimeString()}`);
-          fetchMessages();
-        }
-      )
+      .channel('goldgen-live-tracking')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        setLastRtEvent(`NOUVEAU MESSAGE @ ${new Date().toLocaleTimeString()}`);
+        fetchMessages();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'visits' }, () => {
+        setLastRtEvent(`VISITEUR ACTIF @ ${new Date().toLocaleTimeString()}`);
+        fetchVisits();
+      })
       .subscribe((status) => {
         setRtStatus(status === 'SUBSCRIBED' ? 'ACTIF' : status.toUpperCase());
-        if (status === 'SUBSCRIBED') fetchMessages();
+        if (status === 'SUBSCRIBED') {
+          fetchMessages();
+          fetchVisits();
+        }
       });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase, fetchMessages]);
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase, fetchMessages, fetchVisits]);
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
-    if (!supabase) {
-      throw new Error("CONFIG_MISSING: La connexion au Cloud n'est pas configurée.");
-    }
-
-    const payload = { 
-      name: msg.name,
-      phone: msg.phone,
-      email: msg.email,
-      subject: msg.subject,
-      budget: msg.budget || '',
-      message: msg.message,
-      status: 'new',
-      date: new Date().toISOString()
-    };
-
-    const { error } = await supabase.from('messages').insert([payload]);
-    
-    if (error) {
-      throw new Error(`DATABASE_ERROR: ${error.message}`);
-    }
-
-    if (activePage === 'admin') fetchMessages();
-  }, [supabase, fetchMessages, activePage]);
-
-  const handleTestPropagation = async () => {
-    if (!supabase) return;
-    try {
-      await addMessage({
-        name: "TEST ADMIN",
-        phone: "0000000000",
-        email: "test@goldgen.ma",
-        subject: "DIAGNOSTIC",
-        message: "Ceci est un test de propagation."
-      });
-      setLastRtEvent("Test réussi !");
-    } catch (err: any) {
-      setLastRtEvent(`Erreur: ${err.message}`);
-    }
-  };
+    if (!supabase) throw new Error("CONFIG_MISSING");
+    const { error } = await supabase.from('messages').insert([{ ...msg, status: 'new', date: new Date().toISOString() }]);
+    if (error) throw new Error(error.message);
+  }, [supabase]);
 
   const navigateTo = useCallback((page: ActivePage) => {
     setActivePage(page);
@@ -170,9 +144,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveSbConfig = (url: string, key: string) => {
-    const config = { url, key };
-    setManualSbConfig(config);
-    localStorage.setItem('goldgen_sb_config', JSON.stringify(config));
+    localStorage.setItem('goldgen_sb_config', JSON.stringify({ url, key }));
     window.location.reload();
   };
 
@@ -207,9 +179,9 @@ const App: React.FC = () => {
           {isAdminAuthenticated ? (
             <AdminDashboard 
               messages={messages} 
+              visits={visits}
               onClose={() => navigateTo('home')} 
-              onRefresh={fetchMessages}
-              onTestPropagation={handleTestPropagation}
+              onRefresh={() => { fetchMessages(); fetchVisits(); }}
               rtStatus={rtStatus}
               lastRtEvent={lastRtEvent}
               onLogout={() => {
@@ -217,23 +189,14 @@ const App: React.FC = () => {
                 localStorage.removeItem('goldgen_admin_auth');
                 navigateTo('home');
               }}
-              onDelete={async (id) => {
-                if (supabase) {
-                  await supabase.from('messages').delete().eq('id', id);
-                  fetchMessages();
-                }
-              }}
-              onMarkRead={async (id) => {
-                if (supabase) {
-                  await supabase.from('messages').update({ status: 'read' }).eq('id', id);
-                  fetchMessages();
-                }
-              }}
+              onDelete={async (id) => { if (supabase) { await supabase.from('messages').delete().eq('id', id); fetchMessages(); } }}
+              onMarkRead={async (id) => { if (supabase) { await supabase.from('messages').update({ status: 'read' }).eq('id', id); fetchMessages(); } }}
               onSaveConfig={handleSaveSbConfig}
+              onTestPropagation={() => {}}
               currentSbConfig={{
-                url: supabase ? (manualSbConfig?.url || (import.meta as any).env?.VITE_SUPABASE_URL || '') : '',
-                key: supabase ? (manualSbConfig?.key || (import.meta as any).env?.VITE_SUPABASE_KEY || '') : '',
-                source: (import.meta as any).env?.VITE_SUPABASE_URL ? 'Vercel Env' : 'Manual Config'
+                url: manualSbConfig?.url || '',
+                key: manualSbConfig?.key || '',
+                source: 'Config'
               }}
             />
           ) : (
