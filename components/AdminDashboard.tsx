@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, Activity, Settings, RefreshCw, LogOut, Wifi, WifiOff, User, Tag, Coins, AlertTriangle, Database, CloudAlert, ArrowRight, Terminal, ShieldAlert } from 'lucide-react';
+import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, Activity, Settings, RefreshCw, LogOut, Wifi, WifiOff, User, Tag, Coins, AlertTriangle, Database, CloudAlert, ArrowRight, Terminal, ShieldAlert, Cpu, HardDrive, Beaker, Check, AlertCircle, Radio } from 'lucide-react';
 import { Message } from '../App';
 
 interface AdminDashboardProps {
@@ -12,9 +12,11 @@ interface AdminDashboardProps {
   onMarkRead: (id: string) => void;
   onSaveConfig: (url: string, key: string) => void;
   currentSbConfig: { url: string; key: string; source: string } | null;
+  rtStatus?: string;
+  lastRtEvent?: string;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRefresh, onLogout, onDelete, onMarkRead, onSaveConfig, currentSbConfig }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRefresh, onLogout, onDelete, onMarkRead, onSaveConfig, currentSbConfig, rtStatus, lastRtEvent }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -23,15 +25,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
   const [sbKey, setSbKey] = useState(currentSbConfig?.key || '');
   const [activeTab, setActiveTab] = useState<'config' | 'fix'>('config');
 
-  // Initial load
   useEffect(() => {
     onRefresh();
-  }, [onRefresh]);
+  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await onRefresh();
-    setTimeout(() => setIsRefreshing(false), 800);
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   const filteredMessages = messages.filter(m => 
@@ -43,54 +44,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
 
   const isCloudActive = !!currentSbConfig?.url;
 
-  const sqlFix = `-- 1. Activer le Realtime pour voir les messages instantanément
+  const sqlFixUltimate = `-- COPIER TOUT CE SCRIPT DANS SUPABASE > SQL EDITOR
+-- 1. Réinitialiser la publication Realtime
+drop publication if exists supabase_realtime;
+create publication supabase_realtime;
+
+-- 2. Ajouter la table messages à la publication
 alter publication supabase_realtime add table messages;
 
--- 2. Activer RLS pour la sécurité
+-- 3. FORCER L'IDENTITÉ DE RÉPLIQUE (CRUCIAL POUR LES PAYLOADS)
+alter table messages replica identity full;
+
+-- 4. Activer RLS
 alter table messages enable row level security;
 
--- 3. Autoriser tout le monde à envoyer des messages (INSERT)
-create policy "Allow public insert" on messages for insert with check (true);
+-- 5. Créer une politique d'accès universelle (Supprime les blocages)
+drop policy if exists "Enable all for everyone" on messages;
+create policy "Enable all for everyone" on messages
+for all using (true) with check (true);
 
--- 4. Autoriser l'admin à tout voir (SELECT)
-create policy "Allow public select" on messages for select using (true);`;
+-- 6. Vérifier les types
+alter table messages alter column id set default gen_random_uuid();`;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-slate-950 flex flex-col overflow-hidden text-slate-200 font-sans">
       
       {/* Top Header */}
-      <header className="bg-slate-900 border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl">
+      <header className="bg-slate-900/80 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl relative z-10">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-gold-500 rounded-xl flex items-center justify-center text-slate-950 font-black shadow-lg">G</div>
           <div>
             <h1 className="text-white font-black uppercase tracking-tighter text-lg">GOLDGEN <span className="text-slate-500">ADMIN</span></h1>
             <div className="flex items-center gap-2">
-               {isCloudActive ? (
-                 <span className="flex items-center gap-1 text-green-500 text-[9px] font-black uppercase bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                    <Wifi size={10} className="animate-pulse" /> Cloud Sync Active
-                 </span>
-               ) : (
-                 <span className="flex items-center gap-1 text-red-500 text-[9px] font-black uppercase bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
-                    <WifiOff size={10} /> Mode Local (Sync désactivée)
-                 </span>
-               )}
+               <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'SUBSCRIBED' ? 'text-green-500 bg-green-500/10 border-green-500/20' : 'text-red-500 bg-red-500/10 border-red-500/20'}`}>
+                  <Radio size={10} className={rtStatus === 'SUBSCRIBED' ? 'animate-pulse' : ''} /> 
+                  {rtStatus === 'SUBSCRIBED' ? 'CLOUD LIVE' : rtStatus || 'OFFLINE'}
+               </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
-            title="Rafraîchir les messages"
-            onClick={handleRefresh} 
-            className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
-          >
+          <button onClick={handleRefresh} className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}>
             <RefreshCw size={18} />
           </button>
-          <button 
-            title="Réglages de synchronisation"
-            onClick={() => setShowSettings(!showSettings)} 
-            className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-gold-500 text-slate-950 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
-          >
+          <button onClick={() => setShowSettings(!showSettings)} className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-gold-500 text-slate-950 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
             <Settings size={18} />
           </button>
           <button onClick={onLogout} className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all">
@@ -102,99 +100,66 @@ create policy "Allow public select" on messages for select using (true);`;
         </div>
       </header>
 
-      {/* Sync Alert Banner if offline */}
-      {!isCloudActive && (
-        <div className="bg-red-600 p-3 flex items-center justify-center gap-3 text-white text-[10px] font-black uppercase tracking-widest animate-pulse cursor-pointer" onClick={() => setShowSettings(true)}>
-           <CloudAlert size={16} />
-           <span>Alerte Sécurité: RLS non configuré & Mode Local Actif. Cliquez pour réparer.</span>
-           <ArrowRight size={14} />
-        </div>
-      )}
-
       {showSettings && (
-        <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-2 duration-500 shadow-2xl relative overflow-hidden shrink-0 max-h-[70vh] overflow-y-auto">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 rounded-full blur-[100px] pointer-events-none"></div>
-          
+        <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-30 shrink-0 max-h-[85vh] overflow-y-auto">
           <div className="max-w-5xl mx-auto">
-            <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
-               <div className="flex gap-4">
-                 <button 
-                  onClick={() => setActiveTab('config')}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                 >
-                   Configuration
-                 </button>
-                 <button 
-                  onClick={() => setActiveTab('fix')}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                 >
-                   Réparer Cloud (RLS/Realtime)
-                 </button>
-               </div>
-               <div className="px-4 py-1.5 bg-white/5 rounded-full border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Source: {currentSbConfig?.source}
-               </div>
+            <div className="flex gap-4 mb-8 border-b border-white/5 pb-6">
+               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Connexion</button>
+               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparation (SQL)</button>
             </div>
 
             {activeTab === 'config' ? (
               <div className="grid md:grid-cols-2 gap-10 animate-in fade-in duration-300">
                 <div className="space-y-6">
-                  <div className="bg-black/40 p-6 rounded-3xl border border-white/5 space-y-4">
-                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest">
-                      <Activity size={16} /> État du Tunnel
-                    </h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500">Connexion DB:</span>
-                          <span className={isCloudActive ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
-                              {isCloudActive ? "ÉTABLIE" : "DÉCONNECTÉE"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500">Service Realtime:</span>
-                          <span className={isCloudActive ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
-                              {isCloudActive ? "ACTIF" : "INACTIF"}
-                          </span>
-                        </div>
+                  <div className="bg-black/60 p-6 rounded-3xl border border-white/5 space-y-4 shadow-inner">
+                    <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest"><Activity size={16} /> Moniteur Live</h3>
+                    <div className="space-y-3 pt-2">
+                       <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500 italic">Dernier Événement:</span>
+                          <span className="text-gold-500 font-mono text-[10px]">{lastRtEvent || 'Aucun signal...'}</span>
+                       </div>
+                       <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500 italic">Source Config:</span>
+                          <span className="text-white font-black">{currentSbConfig?.source}</span>
+                       </div>
                     </div>
+                  </div>
+                  <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-3 items-start">
+                     <AlertCircle size={18} className="text-blue-500 shrink-0" />
+                     <p className="text-[10px] text-slate-400 leading-relaxed">
+                        <strong>Rappel Vercel:</strong> Si vous changez les clés, faites un "Redeploy" sur Vercel pour valider.
+                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2">
-                    <Database size={14} /> Identifiants Supabase
-                  </h3>
+                  <h3 className="text-gold-500 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><HardDrive size={14} /> Forcer Identifiants</h3>
                   <form onSubmit={(e) => { e.preventDefault(); onSaveConfig(sbUrl, sbKey); }} className="space-y-3">
-                    <input type="text" placeholder="URL Supabase" className="w-full bg-slate-950 border border-white/10 p-3.5 rounded-xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
-                    <input type="password" placeholder="Clé Anon" className="w-full bg-slate-950 border border-white/10 p-3.5 rounded-xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbKey} onChange={e => setSbKey(e.target.value)} />
-                    <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-gold-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
-                        Mettre à jour l'appareil
-                    </button>
+                    <input type="text" placeholder="URL Supabase" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbUrl} onChange={e => setSbUrl(e.target.value)} />
+                    <input type="password" placeholder="Clé Anon" className="w-full bg-slate-950 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-gold-500 transition-colors" value={sbKey} onChange={e => setSbKey(e.target.value)} />
+                    <button className="w-full py-4 bg-gold-500 text-slate-950 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-gold-500/20 active:scale-95 transition-all">Sauvegarder</button>
                   </form>
                 </div>
               </div>
             ) : (
-              <div className="animate-in fade-in duration-300 space-y-8">
-                <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-3xl">
-                   <div className="flex items-center gap-3 text-red-500 mb-4">
-                      <ShieldAlert size={24} />
-                      <h3 className="font-black uppercase tracking-tighter text-lg">Correction d'Erreur RLS / Realtime</h3>
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-[40px] space-y-4">
+                   <div className="flex items-center gap-4 text-red-500">
+                      <ShieldAlert size={32} />
+                      <h3 className="font-black uppercase tracking-tighter text-xl">Script "Replica Identity"</h3>
                    </div>
-                   <p className="text-slate-400 text-xs leading-relaxed mb-6">
-                     Si les messages du téléphone n'apparaissent pas sur PC, c'est que la table <strong>messages</strong> n'autorise pas la diffusion en temps réel (Realtime) ou bloque les accès (RLS). 
-                     Copiez le code ci-dessous et collez-le dans le <strong>SQL Editor</strong> de votre dashboard Supabase.
+                   <p className="text-slate-400 text-xs leading-relaxed">
+                     Ce script est spécial: il force l'identité de réplique en mode "Full". C'est souvent la seule solution quand les messages n'apparaissent pas.
                    </p>
-                   
-                   <div className="relative group">
-                      <div className="absolute top-4 right-4 text-[10px] font-black text-slate-500 bg-black/50 px-3 py-1 rounded-full uppercase">SQL Script</div>
-                      <pre className="bg-black/60 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[11px] overflow-x-auto whitespace-pre">
-                        {sqlFix}
+                   <div className="relative">
+                      <pre className="bg-black/80 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[10px] overflow-x-auto whitespace-pre">
+                        {sqlFixUltimate}
                       </pre>
                       <button 
-                        onClick={() => { navigator.clipboard.writeText(sqlFix); alert("Copié ! Collez ceci dans Supabase SQL Editor."); }}
-                        className="mt-4 flex items-center gap-2 bg-white/5 hover:bg-white/10 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all"
+                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimate); alert("Copié !"); }}
+                        className="absolute bottom-4 right-4 flex items-center gap-2 bg-white/10 hover:bg-gold-500 hover:text-slate-950 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
                       >
-                        <Terminal size={14} /> Copier le code SQL
+                        <Terminal size={14} /> Copier
                       </button>
                    </div>
                 </div>
@@ -204,8 +169,8 @@ create policy "Allow public select" on messages for select using (true);`;
         </div>
       )}
 
-      {/* List */}
-      <div className="flex-grow overflow-y-auto p-4 md:p-8 bg-slate-950/50">
+      {/* Main Messages Area */}
+      <div className="flex-grow overflow-y-auto p-4 md:p-8 relative z-10 bg-slate-950/50">
         <div className="max-w-6xl mx-auto">
           
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
@@ -213,77 +178,69 @@ create policy "Allow public select" on messages for select using (true);`;
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                <input 
                  type="text" 
-                 placeholder="Rechercher..." 
+                 placeholder="Chercher..." 
                  className="w-full bg-slate-900 border border-white/10 rounded-2xl py-4 md:py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
                />
              </div>
-             <div className="bg-slate-900/50 border border-white/5 rounded-2xl px-6 py-4 flex items-center gap-6">
-                <div className="text-center">
+             
+             <div className="flex gap-4">
+                <div className="bg-slate-900 border border-white/5 rounded-2xl px-8 py-4 text-center">
                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Nouveaux</p>
-                   <p className="text-gold-500 font-black text-xl">{messages.filter(m => m.status === 'new').length}</p>
+                   <p className="text-gold-500 font-black text-2xl">{messages.filter(m => m.status === 'new').length}</p>
                 </div>
-                <div className="w-px h-8 bg-white/10"></div>
-                <div className="text-center">
+                <div className="bg-slate-900 border border-white/5 rounded-2xl px-8 py-4 text-center">
                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total</p>
-                   <p className="text-white font-black text-xl">{messages.length}</p>
+                   <p className="text-white font-black text-2xl">{messages.length}</p>
                 </div>
              </div>
           </div>
 
-          <div className="grid gap-5">
+          <div className="space-y-6 pb-20">
              {filteredMessages.length === 0 ? (
-               <div className="py-32 text-center opacity-10 flex flex-col items-center">
+               <div className="py-32 text-center opacity-20 flex flex-col items-center">
                   <MessageSquare size={100} className="mb-6" />
-                  <p className="text-3xl font-black uppercase tracking-tighter">Aucune donnée</p>
+                  <p className="text-2xl font-black uppercase tracking-tighter">Aucun message</p>
                </div>
              ) : (
                filteredMessages.map((msg) => (
-                 <div key={msg.id} className={`group bg-slate-900 border border-white/5 rounded-[32px] p-6 md:p-8 transition-all hover:bg-slate-800/80 ${msg.status === 'new' ? 'border-gold-500/20 shadow-[0_0_40px_rgba(234,179,8,0.05)]' : 'opacity-60'}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                 <div key={msg.id} className={`group bg-slate-900 border border-white/5 rounded-[40px] p-6 md:p-8 transition-all hover:bg-slate-800/80 ${msg.status === 'new' ? 'border-gold-500/20 shadow-[0_0_50px_rgba(234,179,8,0.05)]' : 'opacity-60'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10">
                        
                        <div className="flex items-center gap-6">
-                          <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[24px] flex items-center justify-center text-slate-950 shadow-xl shrink-0 ${msg.status === 'new' ? 'bg-gold-500' : 'bg-slate-700 text-slate-400'}`}>
-                             <User size={28} />
+                          <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[32px] flex items-center justify-center text-slate-950 shadow-xl shrink-0 ${msg.status === 'new' ? 'bg-gold-500' : 'bg-slate-700 text-slate-400'}`}>
+                             <User size={32} />
                           </div>
                           <div>
-                             <h4 className="text-white text-xl md:text-2xl font-black tracking-tight">{msg.name}</h4>
-                             <div className="flex flex-wrap gap-3 mt-2">
-                                <a href={`tel:${msg.phone}`} className="text-gold-500 font-black text-[10px] md:text-sm hover:text-white transition-colors flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg">
+                             <h4 className="text-white text-2xl md:text-3xl font-black tracking-tight">{msg.name}</h4>
+                             <div className="flex flex-wrap gap-3 mt-3">
+                                <a href={`tel:${msg.phone}`} className="text-gold-500 font-black text-xs md:text-sm hover:text-white transition-colors flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">
                                    <Phone size={14} /> {msg.phone}
                                 </a>
-                                <span className="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg">
+                                <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">
                                    <Calendar size={14} className="text-gold-500" /> {new Date(msg.date).toLocaleDateString()}
                                 </span>
                              </div>
                           </div>
                        </div>
 
-                       <div className="bg-black/20 p-5 md:p-6 rounded-3xl flex-grow lg:max-w-md border border-white/5">
-                          <div className="flex items-center gap-2 mb-3">
+                       <div className="bg-black/20 p-6 md:p-8 rounded-[32px] flex-grow lg:max-w-md border border-white/5">
+                          <div className="flex items-center gap-2 mb-4">
                              <Tag size={14} className="text-gold-500" />
                              <span className="text-white font-black uppercase text-[10px] tracking-widest">{msg.subject}</span>
                           </div>
-                          <p className="text-slate-300 text-sm leading-relaxed italic line-clamp-3">"{msg.message}"</p>
-                          {msg.budget && (
-                             <div className="mt-4 text-gold-500 font-black text-[11px] bg-gold-500/10 px-3 py-1.5 rounded-xl border border-gold-500/20 w-fit flex items-center gap-2">
-                                <Coins size={14} /> {msg.budget} MAD
-                             </div>
-                          )}
+                          <p className="text-slate-300 text-sm md:text-base leading-relaxed italic line-clamp-3">"{msg.message}"</p>
                        </div>
 
-                       <div className="flex items-center gap-3 shrink-0">
+                       <div className="flex items-center gap-4 shrink-0">
                           {msg.status === 'new' && (
-                             <button onClick={() => onMarkRead(msg.id)} className="p-4 md:p-5 bg-green-500 text-slate-950 rounded-2xl hover:bg-green-400 transition-all shadow-lg hover:scale-105 active:scale-95">
-                                <CheckCircle size={24} />
+                             <button onClick={() => onMarkRead(msg.id)} className="p-5 bg-green-500 text-slate-950 rounded-2xl hover:bg-green-400 transition-all shadow-lg hover:scale-105 active:scale-95">
+                                <CheckCircle size={28} />
                              </button>
                           )}
-                          <a href={`mailto:${msg.email}`} className="p-4 md:p-5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-2xl hover:bg-blue-500 hover:text-white transition-all shadow-lg">
-                             <Mail size={24} />
-                          </a>
-                          <button onClick={() => setDeleteConfirmId(msg.id)} className="p-4 md:p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg">
-                             <Trash2 size={24} />
+                          <button onClick={() => setDeleteConfirmId(msg.id)} className="p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg">
+                             <Trash2 size={28} />
                           </button>
                        </div>
 
@@ -296,14 +253,14 @@ create policy "Allow public select" on messages for select using (true);`;
       </div>
 
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-[40px] p-10 text-center shadow-2xl">
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-slate-950/98 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-[48px] p-12 text-center shadow-2xl">
              <AlertTriangle size={60} className="text-red-500 mx-auto mb-6" />
-             <h3 className="text-3xl font-black text-white mb-3 tracking-tighter uppercase">Supprimer?</h3>
-             <p className="text-slate-400 text-sm font-bold mb-8 leading-relaxed">Cette action effacera définitivement le prospect de la base de données Cloud.</p>
-             <div className="flex flex-col gap-3">
-                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all">Confirmer la suppression</button>
-                <button onClick={() => setDeleteConfirmId(null)} className="w-full py-4 bg-white/5 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Annuler</button>
+             <h3 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">Supprimer?</h3>
+             <p className="text-slate-400 text-sm font-bold mb-10 leading-relaxed">Cette action effacera définitivement le prospect du Cloud.</p>
+             <div className="flex flex-col gap-4">
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="w-full py-5 bg-red-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all">Confirmer</button>
+                <button onClick={() => setDeleteConfirmId(null)} className="w-full py-5 bg-white/5 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Annuler</button>
              </div>
           </div>
         </div>

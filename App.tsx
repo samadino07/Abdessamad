@@ -42,6 +42,8 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<ActivePage>('home');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [rtStatus, setRtStatus] = useState<string>('DISCONNECTED');
+  const [lastRtEvent, setLastRtEvent] = useState<string>('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return localStorage.getItem('goldgen_admin_auth') === 'true';
   });
@@ -53,7 +55,6 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
-  // Supabase Client Initialization
   const supabase = useMemo(() => {
     const v = (import.meta as any).env;
     const url = v?.VITE_SUPABASE_URL || manualSbConfig?.url;
@@ -61,7 +62,13 @@ const App: React.FC = () => {
     
     if (!url || !key) return null;
     try {
-      return createClient(url, key);
+      return createClient(url, key, {
+        realtime: {
+          params: {
+            eventsPerSecond: 10,
+          },
+        },
+      });
     } catch (e) {
       return null;
     }
@@ -81,39 +88,39 @@ const App: React.FC = () => {
         .order('date', { ascending: false });
       
       if (error) throw error;
-      
       if (data) {
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("Fetch Failed", err);
       const local = localStorage.getItem('goldgen_messages');
       if (local) setMessages(JSON.parse(local));
     }
   }, [supabase]);
 
-  // Handle Page Changes
   useEffect(() => {
     if (activePage === 'admin' && isAdminAuthenticated) {
       fetchMessages();
     }
   }, [activePage, isAdminAuthenticated, fetchMessages]);
 
-  // Real-time Sync
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('db_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-        console.log('Real-time change detected!', payload);
-        fetchMessages();
-      })
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages' },
+        (payload) => {
+          setLastRtEvent(`${payload.eventType} at ${new Date().toLocaleTimeString()}`);
+          fetchMessages();
+        }
+      )
       .subscribe((status) => {
+        setRtStatus(status);
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully connected to Supabase Realtime');
-          fetchMessages(); // Initial fetch when subscribed
+          fetchMessages();
         }
       });
 
@@ -129,13 +136,11 @@ const App: React.FC = () => {
       try {
         const { error } = await supabase.from('messages').insert([newMessage]);
         if (!error) return;
-        console.error("Supabase insert error:", error);
       } catch (e) {
-        console.error("Cloud connection failed", e);
+        console.error(e);
       }
     }
 
-    // Fallback Local (Only visible on the sender's device)
     const local = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
     const updated = [{ ...newMessage, id: Date.now().toString() }, ...local];
     setMessages(updated as any);
@@ -188,6 +193,8 @@ const App: React.FC = () => {
               messages={messages} 
               onClose={() => navigateTo('home')} 
               onRefresh={fetchMessages}
+              rtStatus={rtStatus}
+              lastRtEvent={lastRtEvent}
               onLogout={() => {
                 setIsAdminAuthenticated(false);
                 localStorage.removeItem('goldgen_admin_auth');
