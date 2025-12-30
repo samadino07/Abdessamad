@@ -60,147 +60,122 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
-      isScrolled ? 'bg-white dark:bg-slate-900 shadow-lg py-3 md:py-4' : 'bg-transparent py-4 md:py-6'
+    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 border-b ${
+      isScrolled 
+        ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-slate-100 dark:border-white/5 py-4' 
+        : 'bg-white/50 dark:bg-slate-950/50 backdrop-blur-md border-transparent py-6'
     }`}>
-      <div className="container mx-auto px-4 md:px-6 flex justify-between items-center">
-        <button onClick={() => onNavigate('home')} className="flex items-center gap-2 md:gap-3 group">
-          <Logo className="h-9 w-9 md:h-12 md:w-12" />
-          <span className={`text-xl md:text-3xl font-black font-display tracking-tighter transition-colors ${
-            isScrolled ? 'text-slate-900 dark:text-white' : 'text-white'
-          }`}>GOLDGEN</span>
+      <div className="container mx-auto px-6 flex justify-between items-center">
+        <button onClick={() => onNavigate('home')} className="flex items-center gap-3 group">
+          <Logo className="h-10 w-10 md:h-12 md:w-12" />
+          <span className="text-2xl md:text-3xl font-black font-display tracking-tighter text-slate-900 dark:text-white transition-colors group-hover:text-gold-500 uppercase">GOLDGEN</span>
         </button>
 
         {/* Desktop Nav */}
-        <div className="hidden lg:flex items-center space-x-6">
-          {isAdmin && (
-            <button
-              onClick={() => onNavigate('admin')}
-              className="flex items-center gap-2 bg-yellow-500 text-slate-900 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest animate-pulse"
-            >
-              <ShieldCheck size={14} />
-              Admin
-            </button>
-          )}
-          
+        <div className="hidden lg:flex items-center space-x-10">
           {navLinks.map((link) => (
             <button
               key={link.name}
               onClick={() => onNavigate(link.page)}
-              className={`font-semibold text-sm uppercase tracking-wider hover:text-yellow-500 transition-colors ${
-                isScrolled ? 'text-slate-600 dark:text-slate-300' : 'text-slate-200'
-              }`}
+              className="font-black text-[11px] uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400 hover:text-gold-500 dark:hover:text-gold-500 transition-colors"
             >
               {link.name}
             </button>
           ))}
           
-          {/* Theme Toggle */}
-          <button 
-            onClick={onToggleTheme}
-            className={`p-2.5 rounded-xl transition-all ${
-              isScrolled 
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-yellow-500' 
-                : 'bg-white/10 text-white hover:bg-white/20'
-            }`}
-            title={theme === 'light' ? 'Mode Sombre' : 'Mode Clair'}
-          >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-
-          <div className="flex items-center space-x-1.5 bg-slate-900/10 dark:bg-white/5 p-1 rounded-lg backdrop-blur-sm border border-white/10">
-            {langs.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => onLangChange(l.code)}
-                className={`px-3 py-1 rounded-md text-[10px] font-black transition-all ${
-                  currentLang === l.code 
-                    ? 'bg-yellow-500 text-slate-900 shadow-md' 
-                    : isScrolled ? 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative" ref={callMenuRef}>
-            <button
-              onClick={() => setIsCallMenuOpen(!isCallMenuOpen)}
-              className="bg-yellow-500 text-slate-900 px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-yellow-400 transition-all shadow-lg active:scale-95 flex items-center space-x-2"
+          <div className="flex items-center gap-4 border-l border-slate-200 dark:border-white/10 pl-10">
+            {/* Theme Toggle */}
+            <button 
+              onClick={onToggleTheme}
+              className="p-3 bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-gold-500 rounded-2xl hover:bg-gold-500 hover:text-slate-900 transition-all"
             >
-              <Phone size={16} className={currentLang === 'ar' ? 'ml-2' : 'mr-2'} />
-              <span>{t.call}</span>
-              <ChevronDown size={16} className={`transition-transform duration-300 ${isCallMenuOpen ? 'rotate-180' : ''}`} />
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
-            {isCallMenuOpen && (
-              <div className={`absolute top-full mt-3 w-64 bg-white dark:bg-slate-800 shadow-2xl rounded-2xl border border-slate-100 dark:border-white/5 py-4 animate-in fade-in slide-in-from-top-2 duration-200 ${
-                currentLang === 'ar' ? 'left-0 origin-top-left' : 'right-0 origin-top-right'
-              }`}>
-                <p className="px-6 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50 dark:border-white/5 mb-2">
-                  {t.chooseNum}
-                </p>
-                {phoneNumbers.map((phone, idx) => (
-                  <a
-                    key={idx}
-                    href={`tel:${phone.number.replace(/\s/g, '')}`}
-                    className={`flex flex-col px-6 py-3 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group ${
-                      currentLang === 'ar' ? 'text-right' : 'text-left'
-                    }`}
-                    onClick={() => setIsCallMenuOpen(false)}
-                  >
-                    <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider">{phone.label}</span>
-                    <span className="text-lg font-black text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-500">{phone.number}</span>
-                  </a>
-                ))}
-              </div>
-            )}
+            {/* Language Switch */}
+            <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+              {langs.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => onLangChange(l.code)}
+                  className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                    currentLang === l.code ? 'bg-gold-500 text-slate-900 shadow-lg' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Call Menu */}
+            <div className="relative" ref={callMenuRef}>
+              <button
+                onClick={() => setIsCallMenuOpen(!isCallMenuOpen)}
+                className="bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-950 px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl flex items-center gap-3"
+              >
+                <Phone size={14} />
+                <span>{t.call}</span>
+                <ChevronDown size={14} className={`transition-transform ${isCallMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isCallMenuOpen && (
+                <div className="absolute top-full mt-4 w-64 bg-white dark:bg-slate-800 shadow-2xl rounded-3xl border border-slate-100 dark:border-white/5 py-6 animate-in fade-in slide-in-from-top-2 duration-300 right-0">
+                  <p className="px-8 pb-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50 dark:border-white/5 mb-4">
+                    {t.chooseNum}
+                  </p>
+                  {phoneNumbers.map((phone, idx) => (
+                    <a
+                      key={idx}
+                      href={`tel:${phone.number.replace(/\s/g, '')}`}
+                      className="flex flex-col px-8 py-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <span className="text-[9px] font-black text-gold-600 uppercase tracking-widest mb-1">{phone.label}</span>
+                      <span className="text-lg font-black text-slate-900 dark:text-white group-hover:text-gold-500">{phone.number}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Mobile Buttons */}
-        <div className="flex lg:hidden items-center gap-2">
-           <button 
+        <div className="flex lg:hidden items-center gap-3">
+          <button 
             onClick={onToggleTheme}
-            className={`p-2.5 rounded-xl transition-all ${
-              isScrolled 
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-yellow-500' 
-                : 'bg-white/10 text-white'
-            }`}
+            className="p-3 bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-gold-500 rounded-xl"
           >
-            {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
           <button
-            className={`p-2 transition-colors ${isScrolled ? 'text-slate-900 dark:text-yellow-500' : 'text-yellow-500'}`}
+            className="p-3 text-slate-900 dark:text-white bg-slate-100 dark:bg-white/5 rounded-xl"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Menu"
           >
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
       {/* Mobile Nav Overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 shadow-2xl py-6 px-4 space-y-4 border-t border-slate-100 dark:border-white/5 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 shadow-2xl p-8 space-y-6 border-t border-slate-100 dark:border-white/5 animate-in slide-in-from-top-4 duration-500">
           {navLinks.map((link) => (
             <button
               key={link.name}
               onClick={() => { onNavigate(link.page); setIsMobileMenuOpen(false); }}
-              className={`block w-full font-bold text-slate-800 dark:text-slate-200 text-base py-3 hover:text-yellow-500 transition-colors ${currentLang === 'ar' ? 'text-right' : 'text-left'}`}
+              className="block w-full font-black text-slate-900 dark:text-white text-xl uppercase tracking-tighter text-left"
             >
               {link.name}
             </button>
           ))}
           
-          <div className="flex justify-center space-x-2 mb-4 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl">
-             {langs.map((l) => (
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl">
+            {langs.map((l) => (
               <button
                 key={l.code}
                 onClick={() => { onLangChange(l.code); setIsMobileMenuOpen(false); }}
-                className={`flex-1 px-3 py-2 rounded-lg text-xs font-black transition-all ${
-                  currentLang === l.code ? 'bg-yellow-500 text-slate-900 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+                className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${
+                  currentLang === l.code ? 'bg-gold-500 text-slate-900 shadow-md' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
                 {l.label}
@@ -208,27 +183,20 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, onLangChange, t, onNavigat
             ))}
           </div>
 
-          <div className="pt-4 border-t border-slate-100 dark:border-white/5">
-            <p className={`text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4 ${currentLang === 'ar' ? 'text-right' : ''}`}>
-              {t.chooseNum}
-            </p>
-            <div className="grid grid-cols-1 gap-3">
-              {phoneNumbers.map((phone, idx) => (
-                <a
-                  key={idx}
-                  href={`tel:${phone.number.replace(/\s/g, '')}`}
-                  className={`flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl group active:bg-yellow-500 transition-colors ${
-                    currentLang === 'ar' ? 'flex-row-reverse' : ''
-                  }`}
-                >
-                  <div className={currentLang === 'ar' ? 'text-right' : 'text-left'}>
-                    <p className="text-[8px] font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider">{phone.label}</p>
-                    <p className="text-base font-black text-slate-900 dark:text-white group-active:text-slate-900">{phone.number}</p>
-                  </div>
-                  <Phone size={18} className="text-yellow-500 group-active:text-slate-900" />
-                </a>
-              ))}
-            </div>
+          <div className="pt-6 border-t border-slate-100 dark:border-white/5 grid gap-4">
+            {phoneNumbers.map((phone, idx) => (
+              <a
+                key={idx}
+                href={`tel:${phone.number.replace(/\s/g, '')}`}
+                className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl group"
+              >
+                <div>
+                  <p className="text-[8px] font-black text-gold-600 uppercase tracking-widest mb-1">{phone.label}</p>
+                  <p className="text-lg font-black text-slate-900 dark:text-white">{phone.number}</p>
+                </div>
+                <Phone size={20} className="text-gold-500" />
+              </a>
+            ))}
           </div>
         </div>
       )}

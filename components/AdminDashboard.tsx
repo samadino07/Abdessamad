@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, ExternalLink, Download, AlertTriangle, CheckCircle2, Info, Cloud, Settings, Globe, Server, Database, User, Tag } from 'lucide-react';
+import { X, Trash2, Mail, Phone, Calendar, CheckCircle, MessageSquare, ShieldCheck, Search, ExternalLink, Download, AlertTriangle, CheckCircle2, Info, Cloud, Settings, Globe, Server, Database, User, Tag, Coins } from 'lucide-react';
 import { Message } from '../App';
 
 interface AdminDashboardProps {
@@ -59,8 +59,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
 
   const exportToCSV = () => {
     if (messages.length === 0) return;
-    const headers = ["ID", "Date", "Nom", "Téléphone", "Email", "Sujet", "Message", "Status"];
-    const rows = messages.map(m => [m.id, `"${m.date}"`, `"${m.name}"`, m.phone, m.email, `"${m.subject}"`, `"${m.message}"`, m.status]);
+    const headers = ["ID", "Date", "Nom", "Téléphone", "Email", "Sujet", "Budget", "Message", "Status"];
+    const rows = messages.map(m => [m.id, `"${m.date}"`, `"${m.name}"`, m.phone, m.email, `"${m.subject}"`, `"${m.budget || ''}"`, `"${m.message}"`, m.status]);
     const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -275,7 +275,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                       <tr className="bg-white/[0.02] text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5">
                         <th className="px-10 py-8">Date d'arrivée</th>
                         <th className="px-10 py-8">Client Lead</th>
-                        <th className="px-10 py-8">Catégorie Projet</th>
+                        <th className="px-10 py-8">Projet & Budget</th>
                         <th className="px-10 py-8">Message</th>
                         <th className="px-10 py-8 text-center">Action Admin</th>
                       </tr>
@@ -301,20 +301,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                                   )}
                                 </span>
                                 <div className="flex items-center gap-4 mt-2">
-                                  <a href={`tel:${msg.phone}`} className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold hover:text-yellow-500 transition-colors">
+                                  <a href={`tel:${msg.phone}`} className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold hover:text-gold-500 transition-colors">
                                     <Phone size={10} /> {msg.phone}
                                   </a>
                                   <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
-                                  <a href={`mailto:${msg.email}`} className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold hover:text-yellow-500 transition-colors">
+                                  <a href={`mailto:${msg.email}`} className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold hover:text-gold-500 transition-colors">
                                     <Mail size={10} /> {msg.email}
                                   </a>
                                 </div>
                              </div>
                           </td>
                           <td className="px-10 py-8">
-                             <span className="px-4 py-2 bg-slate-800 text-yellow-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5">
-                                {msg.subject}
-                             </span>
+                             <div className="flex flex-col gap-2">
+                               <span className="px-4 py-2 bg-slate-800 text-gold-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 w-fit">
+                                  {msg.subject}
+                               </span>
+                               {msg.budget && (
+                                 <span className="flex items-center gap-2 text-white font-black text-xs">
+                                   <Coins size={14} className="text-yellow-500" />
+                                   {msg.budget}
+                                 </span>
+                               )}
+                             </div>
                           </td>
                           <td className="px-10 py-8 max-w-sm">
                              <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed italic group-hover:text-slate-200 transition-colors">
@@ -374,9 +382,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onDe
                               )}
                            </h4>
                         </div>
-                        <span className="px-3 py-1 bg-slate-800 text-yellow-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/5">
-                           {msg.subject}
-                        </span>
+                        <div className="flex flex-col gap-2 items-end">
+                          <span className="px-3 py-1 bg-slate-800 text-yellow-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/5">
+                             {msg.subject}
+                          </span>
+                          {msg.budget && (
+                            <span className="flex items-center gap-1 text-white font-black text-[9px] uppercase">
+                              <Coins size={10} className="text-yellow-500" /> {msg.budget}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="p-4 bg-slate-950/40 rounded-2xl border border-white/5">

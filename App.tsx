@@ -4,22 +4,16 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
 import Services from './components/Services';
-import ServiceDetail from './components/ServiceDetail';
-import DiscoveryModal from './components/DiscoveryModal';
-import ContactModal from './components/ContactModal';
-import AboutModal from './components/AboutModal';
-import ExpertiseModal from './components/ExpertiseModal';
-import EngagementModal from './components/EngagementModal';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLogin from './components/AdminLogin';
+import HSE from './components/HSE';
+import Contact from './Contact';
+import Footer from './components/Footer';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
 import AIChatbot from './components/AIChatbot';
 import LoadingScreen from './components/LoadingScreen';
 import ScrollToTop from './components/ScrollToTop';
-import HSE from './components/HSE';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import FounderSpotlight from './components/FounderSpotlight';
+import ServiceDetail from './components/ServiceDetail';
+import AdminDashboard from './components/AdminDashboard';
+import AdminLogin from './components/AdminLogin';
 import { translations } from './translations';
 import { createClient } from '@supabase/supabase-js';
 
@@ -33,6 +27,7 @@ export interface Message {
   phone: string;
   email: string;
   subject: string;
+  budget?: string;
   message: string;
   date: string;
   status: 'new' | 'read';
@@ -44,12 +39,14 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('goldgen_theme');
     return (saved as Theme) || 'light';
   });
+  const [activePage, setActivePage] = useState<ActivePage>('home');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [activePage, setActivePage] = useState<ActivePage>(null);
-  const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [pageTransition, setPageTransition] = useState(false);
   
+  const t = translations[lang];
+
   // Theme Toggle Effect
   useEffect(() => {
     if (theme === 'dark') {
@@ -62,185 +59,124 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // Intersection Observer for reveal animations
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        }
-      });
-    }, { threshold: 0.1 });
+  // Page Navigation with Transition
+  const navigateTo = useCallback((page: ActivePage) => {
+    if (page === activePage) return;
+    setPageTransition(true);
+    setTimeout(() => {
+      setActivePage(page);
+      setSelectedServiceId(null);
+      window.scrollTo(0, 0);
+      setPageTransition(false);
+    }, 400);
+  }, [activePage]);
 
-    const elements = document.querySelectorAll('.reveal');
-    elements.forEach(el => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [activePage, selectedServiceId]);
-
-  const sbConfig = useMemo(() => {
-    let url = '';
-    let key = '';
-
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      // @ts-ignore
-      url = import.meta.env.VITE_SUPABASE_URL || '';
-      // @ts-ignore
-      key = import.meta.env.VITE_SUPABASE_KEY || '';
+  // Safe Supabase Initialization
+  const supabase = useMemo(() => {
+    const url = (import.meta as any).env?.VITE_SUPABASE_URL;
+    const key = (import.meta as any).env?.VITE_SUPABASE_KEY;
+    if (!url || !key) return null;
+    try {
+      return createClient(url, key);
+    } catch (e) {
+      console.warn("Supabase initialization failed:", e);
+      return null;
     }
-
-    if (!url || !key) {
-      try {
-        // @ts-ignore
-        url = (typeof process !== 'undefined' && process.env) ? (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL) : '';
-        // @ts-ignore
-        key = (typeof process !== 'undefined' && process.env) ? (process.env.VITE_SUPABASE_KEY || process.env.SUPABASE_KEY) : '';
-      } catch (e) {}
-    }
-
-    if (url && key) {
-      return { url, key, source: 'env' };
-    }
-
-    const saved = localStorage.getItem('goldgen_supabase_config');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.url && parsed.key) {
-          return { ...parsed, source: 'local' };
-        }
-      } catch (e) {}
-    }
-
-    return null;
   }, []);
 
-  const supabase = useMemo(() => {
-    if (sbConfig?.url && sbConfig?.key) {
-      try {
-        return createClient(sbConfig.url, sbConfig.key);
-      } catch (e) {
-        console.error("Failed to initialize Supabase client", e);
-      }
-    }
-    return null;
-  }, [sbConfig]);
-
-  const t = translations[lang];
-
   const fetchMessages = useCallback(async () => {
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('*')
-          .order('date', { ascending: false });
-        
-        if (!error && data) {
-          setMessages(data);
-        }
-      } catch (err) {}
-    } else {
-      const savedMessages = localStorage.getItem('goldgen_messages');
-      if (savedMessages) {
-        try {
-          setMessages(JSON.parse(savedMessages));
-        } catch (e) {
-          setMessages([]);
-        }
-      }
+    if (!supabase) {
+      const saved = localStorage.getItem('goldgen_messages');
+      if (saved) setMessages(JSON.parse(saved));
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('date', { ascending: false });
+      if (!error && data) setMessages(data);
+    } catch (err) {
+      const saved = localStorage.getItem('goldgen_messages');
+      if (saved) setMessages(JSON.parse(saved));
     }
   }, [supabase]);
 
   useEffect(() => {
     fetchMessages();
+    const authStatus = sessionStorage.getItem('goldgen_admin_auth');
+    if (authStatus === 'true') setIsAdminAuthenticated(true);
+  }, [fetchMessages]);
+
+  const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
+    const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
+    
+    if (supabase) {
+      const { error } = await supabase.from('messages').insert([newMessage]);
+      if (!error) {
+        fetchMessages();
+        return;
+      }
+    }
+
+    // Fallback to localStorage if Supabase fails or is not configured
+    const currentLocal = JSON.parse(localStorage.getItem('goldgen_messages') || '[]');
+    const updated = [{ ...newMessage, id: Date.now().toString() }, ...currentLocal];
+    setMessages(updated as any);
+    localStorage.setItem('goldgen_messages', JSON.stringify(updated));
   }, [supabase, fetchMessages]);
 
-  useEffect(() => {
-    const authStatus = sessionStorage.getItem('goldgen_admin_auth');
-    if (authStatus === 'true') {
-      setIsAdminAuthenticated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.dir = t.dir;
-    document.documentElement.lang = lang;
-  }, [lang, t.dir]);
-
-  const addMessage = async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
-    const newMessageData = {
-      ...msg,
-      date: new Date().toISOString(),
-      status: 'new'
-    };
-
-    if (supabase) {
-      const { error } = await supabase.from('messages').insert([newMessageData]);
-      if (error) {
-        const localMsg = { ...newMessageData, id: Date.now().toString() };
-        const updated = [localMsg, ...messages];
-        setMessages(updated as any);
-        localStorage.setItem('goldgen_messages', JSON.stringify(updated));
-      } else {
-        fetchMessages();
-      }
-    } else {
-      const localMsg = { ...newMessageData, id: Date.now().toString() };
-      const updatedMessages = [localMsg, ...messages];
-      setMessages(updatedMessages as any);
-      localStorage.setItem('goldgen_messages', JSON.stringify(updatedMessages));
-    }
-  };
-
-  const deleteMessage = async (id: string) => {
-    if (supabase) {
-      const { error } = await supabase.from('messages').delete().eq('id', id);
-      if (!error) fetchMessages();
-    } else {
-      const updated = messages.filter(m => m.id !== id);
-      setMessages(updated);
-      localStorage.setItem('goldgen_messages', JSON.stringify(updated));
-    }
-  };
-
-  const markAsRead = async (id: string) => {
-    if (supabase) {
-      const { error } = await supabase.from('messages').update({ status: 'read' }).eq('id', id);
-      if (!error) fetchMessages();
-    } else {
-      const updated = messages.map(m => m.id === id ? { ...m, status: 'read' as const } : m);
-      setMessages(updated);
-      localStorage.setItem('goldgen_messages', JSON.stringify(updated));
+  const renderPage = () => {
+    switch (activePage) {
+      case 'home':
+        return <Hero t={t.hero} lang={lang} onDiscover={() => navigateTo('expertise')} onNavigate={navigateTo} />;
+      case 'about':
+        return <About t={t.about} lang={lang} />;
+      case 'expertise':
+        return <Services t={t.services} lang={lang} onSelect={setSelectedServiceId} />;
+      case 'engagement':
+        return <HSE t={t.hse} lang={lang} />;
+      case 'contact':
+        return <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />;
+      case 'admin':
+        return isAdminAuthenticated ? (
+          <AdminDashboard 
+            messages={messages} 
+            onClose={() => navigateTo('home')} 
+            onDelete={async (id) => {
+              if (supabase) {
+                await supabase.from('messages').delete().eq('id', id);
+                fetchMessages();
+              } else {
+                const updated = messages.filter(m => m.id !== id);
+                setMessages(updated);
+                localStorage.setItem('goldgen_messages', JSON.stringify(updated));
+              }
+            }}
+            onMarkRead={async (id) => {
+              if (supabase) {
+                await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+                fetchMessages();
+              } else {
+                const updated = messages.map(m => m.id === id ? { ...m, status: 'read' as const } : m);
+                setMessages(updated);
+                localStorage.setItem('goldgen_messages', JSON.stringify(updated));
+              }
+            }}
+            onSaveConfig={() => {}}
+            currentSbConfig={supabase ? { url: (import.meta as any).env.VITE_SUPABASE_URL, key: (import.meta as any).env.VITE_SUPABASE_KEY, source: 'env' } : null}
+          />
+        ) : (
+          <AdminLogin onClose={() => navigateTo('home')} onSuccess={() => setIsAdminAuthenticated(true)} />
+        );
+      default:
+        return <Hero t={t.hero} lang={lang} onDiscover={() => navigateTo('expertise')} onNavigate={navigateTo} />;
     }
   };
-
-  const saveSbConfig = (url: string, key: string) => {
-    localStorage.setItem('goldgen_supabase_config', JSON.stringify({ url, key }));
-    window.location.reload();
-  };
-
-  const navigateTo = useCallback((page: ActivePage) => {
-    if (page === 'home') {
-      setActivePage(null);
-      setIsDiscoveryOpen(false);
-      setSelectedServiceId(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      setActivePage(page);
-    }
-  }, []);
-
-  const handleSelectService = useCallback((id: string) => {
-    setSelectedServiceId(id);
-    setActivePage(null);
-  }, []);
-
-  const unreadCount = messages.filter(m => m.status === 'new').length;
 
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500 selection:bg-yellow-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
+    <div className={`min-h-screen bg-white dark:bg-slate-950 selection:bg-gold-500 selection:text-slate-900 ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <LoadingScreen />
       
       <Navbar 
@@ -253,83 +189,24 @@ const App: React.FC = () => {
         onToggleTheme={toggleTheme}
       />
       
-      <main className="relative">
-        <Hero t={t.hero} lang={lang} onDiscover={() => setIsDiscoveryOpen(true)} onNavigate={navigateTo} />
-        
-        <div className="reveal">
-          <About t={t.about} lang={lang} />
-        </div>
-
-        <div className="reveal">
-          <Services t={t.services} lang={lang} onSelect={handleSelectService} />
-        </div>
-
-        <div className="reveal">
-          <FounderSpotlight t={t.about} lang={lang} />
-        </div>
-
-        <div className="reveal">
-          <HSE t={t.hse} lang={lang} />
-        </div>
-
-        <div className="reveal">
-          <Contact t={t.contact} lang={lang} onSendMessage={addMessage} />
-        </div>
+      <main className={`transition-all duration-500 min-h-[80vh] ${pageTransition ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+        {renderPage()}
       </main>
 
-      <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={unreadCount} />
+      {activePage !== 'admin' && <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={messages.filter(m => m.status === 'new').length} />}
 
       <FloatingWhatsApp />
-      <AIChatbot lang={lang} t={translations[lang]} />
+      <AIChatbot lang={lang} t={t} />
       <ScrollToTop />
 
       {selectedServiceId && (
         <ServiceDetail 
-          service={(translations[lang].services.items as any)[selectedServiceId]} 
+          service={(t.services.items as any)[selectedServiceId]} 
           onClose={() => setSelectedServiceId(null)} 
+          onNavigate={navigateTo}
           lang={lang}
-          t={translations[lang].services}
+          t={t.services}
         />
-      )}
-
-      {isDiscoveryOpen && (
-        <DiscoveryModal 
-          onClose={() => setIsDiscoveryOpen(false)}
-          onExploreServices={() => { setIsDiscoveryOpen(false); setActivePage('expertise'); }}
-          lang={lang}
-          t={translations[lang].discovery}
-        />
-      )}
-
-      {activePage === 'about' && (
-        <AboutModal onClose={() => setActivePage(null)} lang={lang} t={translations[lang].about} />
-      )}
-
-      {activePage === 'expertise' && (
-        <ExpertiseModal onClose={() => setActivePage(null)} lang={lang} t={translations[lang].services} onSelectService={handleSelectService} />
-      )}
-
-      {activePage === 'engagement' && (
-        <EngagementModal onClose={() => setActivePage(null)} lang={lang} t={translations[lang].hse} />
-      )}
-
-      {activePage === 'contact' && (
-        <ContactModal onClose={() => setActivePage(null)} lang={lang} t={translations[lang].contact} onSendMessage={addMessage} />
-      )}
-
-      {activePage === 'admin' && (
-        isAdminAuthenticated ? (
-          <AdminDashboard 
-            messages={messages} 
-            onClose={() => setActivePage(null)} 
-            onDelete={deleteMessage}
-            onMarkRead={markAsRead}
-            onSaveConfig={saveSbConfig}
-            currentSbConfig={sbConfig}
-          />
-        ) : (
-          <AdminLogin onClose={() => setActivePage(null)} onSuccess={() => { setIsAdminAuthenticated(true); sessionStorage.setItem('goldgen_admin_auth', 'true'); }} />
-        )
       )}
     </div>
   );

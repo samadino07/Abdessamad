@@ -20,19 +20,19 @@ const LoadingScreen: React.FC = () => {
     <div className={`fixed inset-0 z-[100000] bg-slate-950 flex flex-col items-center justify-center transition-all duration-800 ease-in-out ${isFading ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100'}`}>
       <div className="relative">
         {/* Animated Rings */}
-        <div className="absolute inset-0 -m-8 border-2 border-yellow-500/20 rounded-full animate-[ping_3s_linear_infinite]"></div>
-        <div className="absolute inset-0 -m-16 border border-yellow-500/10 rounded-full animate-[ping_4s_linear_infinite_reverse]"></div>
+        <div className="absolute inset-0 -m-6 md:-m-8 border-2 border-yellow-500/20 rounded-full animate-[ping_3s_linear_infinite]"></div>
+        <div className="absolute inset-0 -m-12 md:-m-16 border border-yellow-500/10 rounded-full animate-[ping_4s_linear_infinite_reverse]"></div>
         
-        <div className="relative z-10 w-32 h-32 md:w-48 md:h-48 animate-pulse">
+        <div className="relative z-10 w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 animate-pulse">
           <Logo className="w-full h-full" />
         </div>
       </div>
       
-      <div className="mt-12 overflow-hidden">
-        <h2 className="text-white font-black tracking-[0.5em] text-sm uppercase animate-[slideUp_1s_ease-out]">
+      <div className="mt-8 md:mt-12 overflow-hidden px-6 text-center">
+        <h2 className="text-white font-black tracking-[0.3em] md:tracking-[0.5em] text-[10px] md:text-sm uppercase animate-[slideUp_1s_ease-out]">
           Bâtir l'Excellence
         </h2>
-        <div className="h-1 w-full bg-slate-800 mt-4 rounded-full overflow-hidden">
+        <div className="h-1 w-32 md:w-48 bg-slate-800 mt-4 rounded-full overflow-hidden mx-auto">
           <div className="h-full bg-yellow-500 animate-[loading_2s_ease-in-out_infinite]"></div>
         </div>
       </div>
