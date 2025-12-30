@@ -43,29 +43,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ messages, onClose, onRe
     m.subject?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const sqlFixUltimateV5 = `-- SCRIPT DE RÉPARATION FINALE (V5 - PERMISSIONS DE LECTURE)
--- Ce script force Supabase à autoriser la lecture des messages pour tous.
+  const sqlFixUltimateV6 = `-- SCRIPT DE RÉPARATION SUPRÊME (V6 - FULL ACCESS)
+-- Exécutez ce script si vous voyez "INSERT" mais que la liste reste vide.
 
--- 1. Réinitialiser la publication Realtime
+-- 1. Nettoyage Complet
 drop publication if exists supabase_realtime;
 create publication supabase_realtime;
 alter publication supabase_realtime add table messages;
+
+-- 2. Identité de réplique (Crucial pour Realtime)
 alter table messages replica identity full;
 
--- 2. ACCORDER LES DROITS DE LECTURE (SELECT) - CRUCIAL
-grant select on table messages to anon, authenticated;
-grant insert on table messages to anon, authenticated;
-grant update on table messages to anon, authenticated;
-grant delete on table messages to anon, authenticated;
-grant usage on schema public to anon, authenticated;
+-- 3. FORCER L'ACCÈS PUBLIC TOTAL (Bypass RLS)
+-- Nous désactivons RLS temporairement pour vérifier si c'est la cause.
+alter table messages disable row level security;
 
--- 3. Politique RLS "OPEN" (Supprime les restrictions de filtrage)
-alter table messages enable row level security;
-drop policy if exists "Enable all for all" on messages;
-create policy "Enable all for all" on messages for all using (true) with check (true);
+-- 4. Droits de base de données (Grant)
+grant all on table messages to postgres, anon, authenticated, service_role;
+grant all on all sequences in schema public to postgres, anon, authenticated, service_role;
 
--- 4. Notification
--- Une fois exécuté, cliquez sur "Tester Propagation" dans le dashboard.`;
+-- 5. Recréer une politique de secours au cas où RLS est réactivé
+drop policy if exists "Master Access" on messages;
+create policy "Master Access" on messages for all using (true) with check (true);
+
+-- 6. Note : Si ça ne marche toujours pas, vérifiez dans Supabase Dashboard :
+-- Database > Replication > 'supabase_realtime' publication > Ensure 'messages' is checked.`;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-slate-950 flex flex-col overflow-hidden text-slate-200 font-sans">
@@ -79,14 +81,14 @@ create policy "Enable all for all" on messages for all using (true) with check (
             <div className="flex items-center gap-2">
                <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${rtStatus === 'ACTIF' ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
                   <Radio size={10} className={rtStatus === 'ACTIF' ? 'animate-pulse' : ''} /> 
-                  {rtStatus === 'ACTIF' ? 'MONITEUR CONNECTÉ' : `STATUT : ${rtStatus || 'OFFLINE'}`}
+                  {rtStatus === 'ACTIF' ? 'FLUX ACTIF' : `STATUT : ${rtStatus || 'OFFLINE'}`}
                </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={onTestPropagation} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+          <button onClick={onTestPropagation} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">
              <Zap size={14} /> Tester Flux Cloud
           </button>
           <button onClick={handleRefresh} className={`p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}>
@@ -108,20 +110,20 @@ create policy "Enable all for all" on messages for all using (true) with check (
         <div className="bg-slate-900 border-b border-white/10 p-8 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-30 shrink-0 max-h-[85vh] overflow-y-auto">
           <div className="max-w-5xl mx-auto">
             <div className="flex gap-4 mb-8 border-b border-white/5 pb-6">
-               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>État Cloud</button>
-               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Réparer Lecture (V5)</button>
+               <button onClick={() => setActiveTab('config')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-gold-500 text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Moniteur</button>
+               <button onClick={() => setActiveTab('fix')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'fix' ? 'bg-red-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Forcer Accès (SQL V6)</button>
             </div>
 
             {activeTab === 'config' ? (
               <div className="grid md:grid-cols-2 gap-10 animate-in fade-in duration-300">
                 <div className="space-y-6">
-                  <div className={`p-6 rounded-3xl border transition-all duration-500 ${lastRtEvent?.includes('ERREUR') ? 'bg-red-500/10 border-red-500/30' : lastRtEvent ? 'bg-green-500/10 border-green-500/30' : 'bg-black/40 border-white/5'}`}>
+                  <div className={`p-6 rounded-3xl border transition-all duration-500 ${lastRtEvent?.includes('INSERT') ? 'bg-green-500/10 border-green-400/40 shadow-[0_0_30px_rgba(34,197,94,0.1)]' : 'bg-black/40 border-white/5'}`}>
                     <h3 className="flex items-center gap-2 text-gold-500 font-black uppercase text-[10px] tracking-widest mb-4"><Activity size={16} /> Signal Diagnostic</h3>
                     <div className="space-y-3">
                        <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500 italic">Dernière Activité :</span>
-                          <span className={`${lastRtEvent?.includes('ERREUR') ? 'text-red-400' : 'text-green-400'} font-mono text-[10px]`}>
-                            {lastRtEvent || 'Aucun signal reçu...'}
+                          <span className={`${lastRtEvent?.includes('INSERT') ? 'text-green-400 font-black' : 'text-slate-400'} font-mono text-[10px]`}>
+                            {lastRtEvent || 'En attente...'}
                           </span>
                        </div>
                     </div>
@@ -129,7 +131,7 @@ create policy "Enable all for all" on messages for all using (true) with check (
                   <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-3 items-center">
                      <AlertCircle size={18} className="text-blue-500" />
                      <p className="text-[10px] text-slate-400 leading-relaxed">
-                        Si vous voyez "INSERT" mais que la liste ne change pas, exécutez le script <strong>V5</strong> pour débloquer les droits de lecture.
+                        Si le moniteur affiche "INSERT" mais que rien n'apparaît, c'est que Supabase bloque l'affichage (SELECT). Utilisez le script <strong>V6</strong>.
                      </p>
                   </div>
                 </div>
@@ -148,17 +150,18 @@ create policy "Enable all for all" on messages for all using (true) with check (
                 <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-[40px] space-y-4">
                    <div className="flex items-center gap-4 text-red-500">
                       <ShieldAlert size={32} />
-                      <h3 className="font-black uppercase tracking-tighter text-xl">Script SQL Déblocage V5</h3>
+                      <h3 className="font-black uppercase tracking-tighter text-xl">Script SQL Déblocage V6</h3>
                    </div>
+                   <p className="text-slate-400 text-xs italic">Désactive les politiques de sécurité pour forcer l'affichage de tous les messages.</p>
                    <div className="relative">
                       <pre className="bg-black/80 p-6 rounded-2xl border border-white/10 text-gold-500/90 font-mono text-[10px] overflow-x-auto whitespace-pre leading-relaxed">
-                        {sqlFixUltimateV5}
+                        {sqlFixUltimateV6}
                       </pre>
                       <button 
-                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimateV5); alert("Script V5 Copié !"); }}
+                        onClick={() => { navigator.clipboard.writeText(sqlFixUltimateV6); alert("Script V6 Copié !"); }}
                         className="absolute bottom-4 right-4 bg-gold-500 text-slate-950 px-4 py-2 rounded-xl text-[9px] font-black uppercase shadow-xl"
                       >
-                        Copier Script V5
+                        Copier Script V6
                       </button>
                    </div>
                 </div>
@@ -177,7 +180,7 @@ create policy "Enable all for all" on messages for all using (true) with check (
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                <input 
                  type="text" 
-                 placeholder="Rechercher..." 
+                 placeholder="Chercher..." 
                  className="w-full bg-slate-900 border border-white/10 rounded-2xl py-4 md:py-5 pl-12 pr-6 text-white font-bold focus:outline-none focus:border-gold-500 transition-all shadow-xl"
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
@@ -201,6 +204,9 @@ create policy "Enable all for all" on messages for all using (true) with check (
                <div className="py-32 text-center opacity-20 flex flex-col items-center">
                   <MessageSquare size={100} className="mb-6" />
                   <p className="text-2xl font-black uppercase tracking-tighter">Aucun message sur le Cloud</p>
+                  <button onClick={handleRefresh} className="mt-6 flex items-center gap-2 text-gold-500 font-black uppercase tracking-widest text-[10px] hover:underline">
+                    <RefreshCw size={14} /> Forcer le rafraîchissement
+                  </button>
                </div>
              ) : (
                filteredMessages.map((msg) => (

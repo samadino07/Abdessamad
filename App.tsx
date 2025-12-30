@@ -75,25 +75,25 @@ const App: React.FC = () => {
     if (!supabase) return;
 
     try {
-      console.log("Fetching from Cloud...");
+      console.log("[DB] Tentative de lecture des messages...");
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .order('date', { ascending: false });
       
       if (error) {
-        console.error("Cloud Fetch Error (Permissions ?):", error);
-        setLastRtEvent(`ERREUR FETCH: ${error.message}`);
+        console.error("[DB] Erreur fatale de lecture :", error);
+        setLastRtEvent(`ERREUR LECTURE: ${error.message}`);
         return;
       }
 
       if (data) {
-        console.log(`Cloud Data Sync: ${data.length} messages received.`);
+        console.log(`[DB] Succès : ${data.length} messages récupérés.`);
         setMessages(data);
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("System Error during fetch:", err);
+      console.error("[System] Exception lors du fetch:", err);
     }
   }, [supabase]);
 
@@ -107,21 +107,20 @@ const App: React.FC = () => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('goldgen-live-v2')
+      .channel('goldgen-live-final')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          console.log('--- EVENT DETECTED ---', payload);
+          console.log('[REALTIME] Événement détecté :', payload);
           const time = new Date().toLocaleTimeString();
           setLastRtEvent(`${payload.eventType.toUpperCase()} à ${time}`);
           
-          // Force a small delay to ensure DB consistency before refetch
-          setTimeout(() => fetchMessages(), 300);
+          // Mise à jour immédiate
+          fetchMessages();
         }
       )
       .subscribe((status) => {
-        console.log('Realtime Connection Status:', status);
         setRtStatus(status === 'SUBSCRIBED' ? 'ACTIF' : status.toUpperCase());
         if (status === 'SUBSCRIBED') fetchMessages();
       });
@@ -135,31 +134,40 @@ const App: React.FC = () => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
     
     if (supabase) {
-      console.log("Attempting Cloud Insert...");
+      console.log("[DB] Envoi du message au Cloud...");
       const { error } = await supabase.from('messages').insert([newMessage]);
+      
       if (error) {
-        console.error("Insert failed:", error);
+        console.error("[DB] L'envoi a échoué :", error);
+        throw error; // On propage l'erreur pour que Contact.tsx puisse l'afficher
       } else {
-        console.log("Insert Successful!");
+        console.log("[DB] Message envoyé avec succès !");
+        // Forcer le fetch immédiatement sans attendre le realtime
+        await fetchMessages();
       }
     }
-  }, [supabase]);
+  }, [supabase, fetchMessages]);
 
   const handleTestPropagation = async () => {
     if (!supabase) return;
     const testMsg = {
-      name: "DEBUG TEST",
+      name: "TEST SYSTEME",
       phone: "0000000000",
-      email: "debug@goldgen.ma",
+      email: "test@goldgen.ma",
       subject: "DIAGNOSTIC",
-      message: `Test de flux à ${new Date().toLocaleTimeString()}`,
+      message: `Diagnostic manuel initié à ${new Date().toLocaleTimeString()}`,
       date: new Date().toISOString(),
       status: 'new' as const
     };
-    console.log("Sending Test Packet...");
+    console.log("[DB] Envoi d'un paquet de test...");
     const { error } = await supabase.from('messages').insert([testMsg]);
-    if (error) console.error("Test Send Error:", error);
-    setLastRtEvent("TEST ENVOYÉ - ATTENTE SIGNAL...");
+    if (error) {
+      console.error("[DB] Erreur de test :", error);
+      setLastRtEvent(`ECHEC TEST: ${error.message}`);
+    } else {
+      setLastRtEvent("TEST ENVOYÉ ! Rafraîchissement...");
+      await fetchMessages();
+    }
   };
 
   const navigateTo = useCallback((page: ActivePage) => {
