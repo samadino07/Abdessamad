@@ -5,90 +5,114 @@ import Logo from './Logo';
 const LoadingScreen: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isFading, setIsFading] = useState(false);
-  const [step, setStep] = useState(0); // 0: Logo, 1: French Welcome, 2: Arabic Welcome
+  const [percent, setPercent] = useState(0);
 
   useEffect(() => {
-    // Sequence of animations (Extended for better readability)
-    // Step 0: Logo only (initial)
-    
-    // Step 1: French Welcome after 1.5s
-    const step1 = setTimeout(() => setStep(1), 1500);
-    
-    // Step 2: Arabic Welcome after 4.5s
-    const step2 = setTimeout(() => setStep(2), 4500);
-    
-    // Start Fade Out after 7.5s
-    const fadeOutStart = setTimeout(() => {
-      setIsFading(true);
-      // Completely remove after fade animation (800ms)
-      setTimeout(() => setIsVisible(false), 800);
-    }, 7500);
+    // Exact 7 seconds timing
+    const interval = setInterval(() => {
+      setPercent(prev => {
+        const next = prev + 0.72;
+        if (next >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return next;
+      });
+    }, 50);
 
-    return () => {
-      clearTimeout(step1);
-      clearTimeout(step2);
-      clearTimeout(fadeOutStart);
-    };
-  }, []);
+    if (percent >= 100) {
+      const exitTimer = setTimeout(() => {
+        setIsFading(true);
+        setTimeout(() => setIsVisible(false), 800);
+      }, 500);
+      return () => clearTimeout(exitTimer);
+    }
+
+    return () => clearInterval(interval);
+  }, [percent]);
 
   if (!isVisible) return null;
 
+  // Trilingual logic: FR (0-33%), EN (33-66%), AR (66-100%)
+  let currentMessage = "";
+  let isArabic = false;
+
+  if (percent < 34) {
+    currentMessage = "NOUS ASPIRONS À ÊTRE VOTRE PARTENAIRE STRATÉGIQUE";
+  } else if (percent < 67) {
+    currentMessage = "WE STRIVE TO BE YOUR STRATEGIC PARTNER";
+  } else {
+    currentMessage = "نطمح لنكون شريككم الاستراتيجي";
+    isArabic = true;
+  }
+
   return (
-    <div className={`fixed inset-0 z-[100000] bg-slate-950 flex flex-col items-center justify-center transition-all duration-1000 ease-in-out ${isFading ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-[100000] bg-slate-950 flex flex-col items-center justify-center overflow-hidden transition-all duration-1000 ease-in-out ${isFading ? 'opacity-0 scale-105 blur-2xl' : 'opacity-100'}`}>
       
-      {/* Background Ambient Glows */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold-500/10 rounded-full blur-[140px] animate-pulse"></div>
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gold-500/5 rounded-full blur-[100px]"></div>
+      {/* LUXURY BACKGROUND */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(234,179,8,0.1),transparent_70%)] opacity-40"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:80px_80px] opacity-[0.03]"></div>
       </div>
 
-      <div className="relative flex flex-col items-center">
-        {/* Animated Background Decoration */}
-        <div className="absolute inset-0 -m-12 md:-m-16 border border-gold-500/10 rounded-full animate-[spin_10s_linear_infinite]"></div>
-        <div className="absolute inset-0 -m-12 md:-m-16 border-t-2 border-gold-500/20 rounded-full animate-[spin_3s_linear_infinite]"></div>
+      <div className="relative z-20 flex flex-col items-center w-full max-w-3xl px-8">
         
-        {/* Logo Section */}
-        <div className={`relative z-10 w-32 h-32 md:w-56 md:h-56 mb-16 transition-all duration-1000 ${step > 0 ? 'scale-90 -translate-y-4' : 'scale-100'}`}>
-          <Logo className="w-full h-full" />
-        </div>
-        
-        {/* Text Area with fixed height to prevent layout shifts */}
-        <div className="h-32 flex items-center justify-center relative w-full max-w-2xl px-8">
+        {/* ENHANCED LOGO AREA WITH DYNAMIC ORBITS */}
+        <div className="relative w-64 h-64 md:w-80 md:h-80 mb-12 flex items-center justify-center">
           
-          {/* Step 1: French Welcome */}
-          <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-1000 ${step === 1 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
-            <h2 className="text-white font-black tracking-[0.25em] text-sm md:text-base lg:text-lg uppercase text-center drop-shadow-lg">
-              Bienvenue chez <span className="text-gold-500">GOLDGEN</span>
-            </h2>
-            <p className="text-slate-400 text-[11px] md:text-sm mt-4 font-medium text-center uppercase tracking-[0.15em] leading-relaxed max-w-md opacity-80">
-              Nous espérons être à la hauteur de vos attentes.
-            </p>
-          </div>
+          {/* OUTER ROTATING RINGS */}
+          <div className="absolute inset-0 border-2 border-gold-500/10 rounded-full"></div>
+          
+          {/* DASHED ANIMATED ORBITS */}
+          <div className="absolute inset-[-15px] border-[1px] border-dashed border-gold-500/30 rounded-full animate-[spin_12s_linear_infinite]"></div>
+          <div className="absolute inset-[-30px] border-[1px] border-dashed border-gold-500/15 rounded-full animate-[spin_20s_linear_infinite_reverse]"></div>
+          
+          {/* FAST GLOWING ACCENTS */}
+          <div className="absolute inset-[-5px] border-t-2 border-gold-500 rounded-full animate-[spin_4s_linear_infinite] opacity-60"></div>
+          <div className="absolute inset-[-10px] border-r-2 border-gold-400/20 rounded-full animate-[spin_6s_linear_infinite_reverse]"></div>
 
-          {/* Step 2: Arabic Welcome */}
-          <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-1000 ${step === 2 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
-            <h2 className="text-white font-black text-2xl md:text-4xl text-center font-arabic leading-relaxed drop-shadow-lg">
-              مرحباً بكم في <span className="text-gold-500">GOLDGEN</span>
-            </h2>
-            <p className="text-slate-300 text-sm md:text-xl mt-4 font-arabic font-bold text-center leading-relaxed opacity-90">
-              نتمنى أن نكون عند حسن ظنكم.
-            </p>
+          {/* CENTRAL LOGO REVEAL */}
+          <div className={`relative z-10 transition-all duration-1000 ${percent > 10 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+             <Logo className="w-48 h-48 md:w-64 md:h-64 drop-shadow-[0_0_50px_rgba(234,179,8,0.45)]" />
           </div>
         </div>
 
-        {/* Dynamic Progress Bar */}
-        <div className="mt-12 h-1 w-40 md:w-64 bg-slate-900 rounded-full overflow-hidden border border-white/5">
-          <div className="h-full bg-gradient-to-r from-gold-700 via-gold-500 to-gold-300 animate-[loading_7.5s_linear_forwards]"></div>
+        {/* MESSAGE AREA - ENHANCED VISIBILITY */}
+        <div className="w-full flex flex-col items-center text-center">
+          
+          <div className="h-20 md:h-24 flex items-center justify-center mb-8 px-4 overflow-hidden">
+             <h2 
+              key={currentMessage}
+              className={`text-gold-500 text-sm md:text-xl font-black tracking-[0.3em] uppercase animate-in fade-in slide-in-from-bottom-4 duration-700 drop-shadow-[0_0_20px_rgba(234,179,8,0.6)] leading-relaxed ${isArabic ? 'font-arabic tracking-normal md:text-2xl' : ''}`}
+             >
+                {currentMessage}
+             </h2>
+          </div>
+
+          {/* PROGRESS INDICATOR */}
+          <div className="w-full max-w-sm h-[2px] bg-white/5 rounded-full overflow-hidden mb-6 relative">
+             <div 
+               className="h-full bg-gold-500 transition-all duration-300 shadow-[0_0_25px_#eab308]" 
+               style={{ width: `${percent}%` }}
+             ></div>
+             {/* Glowing pulse at progress head */}
+             <div 
+               className="absolute top-[-4px] h-[10px] w-[10px] bg-white rounded-full shadow-[0_0_20px_#fff] blur-[1px] transition-all duration-300"
+               style={{ left: `calc(${percent}% - 5px)` }}
+             ></div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+             <span className="text-xs md:text-sm font-black text-white tabular-nums tracking-[0.3em] opacity-80">{Math.floor(percent)}%</span>
+             <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.5em] animate-pulse">Initialisation Système</span>
+          </div>
         </div>
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes loading {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-        .font-arabic {
-          font-family: 'Noto Sans Arabic', sans-serif;
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}} />
     </div>

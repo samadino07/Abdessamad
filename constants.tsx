@@ -9,6 +9,7 @@ export const COLORS = {
   light: '#F8FAFC',
 };
 
+// Logo mis à jour avec le lien fourni
 export const LOGO_PATH = 'https://i.ibb.co/84PXpCjY/Chat-GPT-Image-1-nov-2025-14-35-22-1.png'; 
 
 export const CONTACT_DATA: ContactInfo = {
