@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Trash2, Phone, Calendar, CheckCircle, MessageSquare, Search, Activity, Settings, RefreshCw, LogOut, User, Tag, AlertTriangle, ShieldAlert, Radio, Users, Globe, Eye, MapPin } from 'lucide-react';
 import { Message, Visit } from '../App';
+import Logo from './Logo';
 
 interface AdminDashboardProps {
   messages: Message[];
@@ -71,7 +72,9 @@ CREATE PUBLICATION supabase_realtime FOR TABLE messages, visits;`;
       {/* Header Admin */}
       <header className="bg-slate-900/95 backdrop-blur-2xl border-b border-white/10 px-4 md:px-6 py-4 flex items-center justify-between shrink-0 shadow-2xl relative z-20">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-black shadow-lg transition-colors ${lastRtEvent?.includes('VISITEUR') ? 'bg-green-400 animate-pulse' : 'bg-gold-500'}`}>G</div>
+          <div className={`${lastRtEvent?.includes('VISITEUR') ? 'animate-pulse' : ''}`}>
+            <Logo className="w-10 h-10" />
+          </div>
           <div className="hidden sm:block">
             <h1 className="text-white font-black uppercase tracking-tighter text-sm md:text-lg">GOLDGEN <span className="text-slate-500">ADMIN</span></h1>
             <div className="flex items-center gap-2">

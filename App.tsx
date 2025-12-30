@@ -13,7 +13,6 @@ import ScrollToTop from './components/ScrollToTop';
 import ServiceDetail from './components/ServiceDetail';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
-import AIChatbot from './components/AIChatbot';
 import { translations } from './translations';
 import { createClient } from '@supabase/supabase-js';
 
@@ -251,7 +250,6 @@ const App: React.FC = () => {
           <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={messages.filter(m => m.status === 'new').length} isCloudConnected={!!supabase} />
           <FloatingWhatsApp />
           <ScrollToTop />
-          <AIChatbot lang={lang} t={t} />
         </>
       )}
 
