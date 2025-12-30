@@ -8,7 +8,6 @@ import HSE from './components/HSE';
 import Contact from './Contact';
 import Footer from './components/Footer';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
-import AIChatbot from './components/AIChatbot';
 import LoadingScreen from './components/LoadingScreen';
 import ScrollToTop from './components/ScrollToTop';
 import ServiceDetail from './components/ServiceDetail';
@@ -109,7 +108,6 @@ const App: React.FC = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          console.log("Realtime event received:", payload);
           setLastRtEvent(`UPDATE ${payload.eventType} @ ${new Date().toLocaleTimeString()}`);
           fetchMessages();
         }
@@ -126,7 +124,7 @@ const App: React.FC = () => {
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     if (!supabase) {
-      throw new Error("CONFIG_MISSING: La connexion au Cloud n'est pas configurée dans l'Admin.");
+      throw new Error("CONFIG_MISSING: La connexion au Cloud n'est pas configurée.");
     }
 
     const payload = { 
@@ -140,16 +138,12 @@ const App: React.FC = () => {
       date: new Date().toISOString()
     };
 
-    console.log("Attempting to insert into Supabase:", payload);
     const { error } = await supabase.from('messages').insert([payload]);
     
     if (error) {
-      console.error("Supabase insert error:", error);
       throw new Error(`DATABASE_ERROR: ${error.message}`);
     }
 
-    console.log("Insert successful!");
-    // Force refresh local view if admin
     if (activePage === 'admin') fetchMessages();
   }, [supabase, fetchMessages, activePage]);
 
@@ -250,7 +244,7 @@ const App: React.FC = () => {
           )}
         </div>
       ) : (
-        <main className="pt-20">
+        <main className="pt-16 md:pt-20">
           {renderPage()}
         </main>
       )}
@@ -259,7 +253,6 @@ const App: React.FC = () => {
         <>
           <Footer t={t.footer} lang={lang} onNavigate={navigateTo} unreadCount={messages.filter(m => m.status === 'new').length} isCloudConnected={!!supabase} />
           <FloatingWhatsApp />
-          <AIChatbot lang={lang} t={t} />
           <ScrollToTop />
         </>
       )}

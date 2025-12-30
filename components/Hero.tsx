@@ -12,63 +12,63 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ t, lang, onDiscover, onNavigate }) => {
   return (
-    <section className="relative min-h-[95vh] flex items-center bg-white dark:bg-slate-950 overflow-hidden pt-28 pb-16 md:pt-32 md:pb-20 transition-all duration-500">
+    <section className="relative min-h-[90vh] md:min-h-[95vh] flex items-center bg-white dark:bg-slate-950 overflow-hidden pt-24 pb-12 md:pt-32 md:pb-20 transition-all duration-500">
       <div className="container mx-auto px-4 md:px-6 h-full">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 h-full">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-24 h-full">
           
           {/* Content Side */}
           <div className={`lg:w-1/2 flex flex-col justify-center animate-in slide-in-from-left-10 duration-1000 ${lang === 'ar' ? 'lg:order-2 text-right' : ''}`}>
-            <div className={`inline-flex items-center gap-2 md:gap-3 mb-6 md:mb-10 px-4 py-1.5 md:px-5 md:py-2 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 ${lang === 'ar' ? 'flex-row-reverse ml-auto' : 'mr-auto'}`}>
-              <span className="flex h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-gold-500 animate-ping"></span>
-              <span className="text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] md:text-[10px]">{t.subtitle}</span>
+            <div className={`inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 ${lang === 'ar' ? 'flex-row-reverse ml-auto' : 'mr-auto'}`}>
+              <span className="flex h-1.5 w-1.5 rounded-full bg-gold-500 animate-ping"></span>
+              <span className="text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-[8px] md:text-[10px]">{t.subtitle}</span>
             </div>
             
-            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-slate-900 dark:text-white leading-[0.9] tracking-tighter mb-8 md:mb-12">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black text-slate-900 dark:text-white leading-[1] tracking-tighter mb-6 md:mb-12">
               {t.title1} <br />
               <span className="text-luxury">{t.titleAccent1}</span>
             </h1>
             
-            <p className="text-lg md:text-xl lg:text-2xl text-slate-500 dark:text-slate-400 mb-10 md:mb-14 max-w-xl font-medium leading-relaxed">
+            <p className="text-base md:text-xl lg:text-2xl text-slate-500 dark:text-slate-400 mb-8 md:mb-14 max-w-xl font-medium leading-relaxed">
               {t.desc}
             </p>
             
             <div className={`flex flex-col sm:flex-row gap-4 md:gap-8 ${lang === 'ar' ? 'lg:justify-end' : ''}`}>
               <button
                 onClick={onDiscover}
-                className="bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-950 px-10 py-5 md:px-12 md:py-7 rounded-2xl md:rounded-[32px] font-black text-[12px] md:text-sm uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95"
+                className="bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-950 px-8 py-4 md:px-12 md:py-7 rounded-2xl font-black text-[11px] md:text-sm uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-3 active:scale-95"
               >
                 <span>{t.cta1}</span>
-                <ArrowRight size={20} className={`md:w-5 md:h-5 ${lang === 'ar' ? 'rotate-180' : ''}`} />
+                <ArrowRight size={18} className={`${lang === 'ar' ? 'rotate-180' : ''}`} />
               </button>
               <button
                 onClick={() => onNavigate('contact')}
-                className="bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white px-10 py-5 md:px-12 md:py-7 rounded-2xl md:rounded-[32px] font-black text-[12px] md:text-sm uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all text-center active:scale-95"
+                className="bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white px-8 py-4 md:px-12 md:py-7 rounded-2xl font-black text-[11px] md:text-sm uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all text-center active:scale-95"
               >
                 {t.cta2}
               </button>
             </div>
 
             {/* Quick Stats Grid */}
-            <div className={`grid grid-cols-2 gap-8 md:gap-10 mt-12 md:mt-20 pt-8 md:pt-10 border-t border-slate-100 dark:border-white/5 ${lang === 'ar' ? 'text-right' : ''}`}>
+            <div className={`grid grid-cols-2 gap-6 md:gap-10 mt-10 md:mt-20 pt-8 border-t border-slate-100 dark:border-white/5 ${lang === 'ar' ? 'text-right' : ''}`}>
                <div>
-                  <div className={`flex items-center gap-2 md:gap-3 mb-2 text-gold-500 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <Globe size={18} className="md:w-5 md:h-5" />
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t.stats.reach}</span>
+                  <div className={`flex items-center gap-2 mb-1 text-gold-500 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <Globe size={16} />
+                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">{t.stats.reach}</span>
                   </div>
-                  <p className="text-slate-900 dark:text-white font-black text-lg md:text-xl">{t.stats.reachVal}</p>
+                  <p className="text-slate-900 dark:text-white font-black text-base md:text-xl">{t.stats.reachVal}</p>
                </div>
                <div>
-                  <div className={`flex items-center gap-2 md:gap-3 mb-2 text-gold-500 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <ShieldCheck size={18} className="md:w-5 md:h-5" />
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t.stats.standard}</span>
+                  <div className={`flex items-center gap-2 mb-1 text-gold-500 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <ShieldCheck size={16} />
+                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">{t.stats.standard}</span>
                   </div>
-                  <p className="text-slate-900 dark:text-white font-black text-lg md:text-xl">{t.stats.standardVal}</p>
+                  <p className="text-slate-900 dark:text-white font-black text-base md:text-xl">{t.stats.standardVal}</p>
                </div>
             </div>
           </div>
 
           {/* Visual Side */}
-          <div className="lg:w-1/2 relative h-[400px] sm:h-[500px] lg:h-[80vh] w-full rounded-[40px] md:rounded-[80px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.1)] group animate-in zoom-in-95 duration-1000">
+          <div className="lg:w-1/2 relative h-[350px] md:h-[500px] lg:h-[80vh] w-full rounded-[32px] md:rounded-[80px] overflow-hidden shadow-2xl group animate-in zoom-in-95 duration-1000">
              <img 
                src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=85&w=1200" 
                alt="Construction Goldgen" 
@@ -76,13 +76,13 @@ const Hero: React.FC<HeroProps> = ({ t, lang, onDiscover, onNavigate }) => {
              />
              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
              
-             {/* Dynamic Card (cachée sur petit mobile) */}
-             <div className={`absolute bottom-8 md:bottom-16 ${lang === 'ar' ? 'left-8 md:left-16' : 'right-8 md:right-16'} bg-white/10 backdrop-blur-3xl p-6 md:p-10 rounded-[32px] md:rounded-[48px] border border-white/20 hidden sm:block max-w-[280px] md:max-w-sm`}>
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-gold-500 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-900 mb-4 md:mb-6 shadow-xl">
-                   <ShieldCheck size={24} className="md:w-7 md:h-7" />
+             {/* Dynamic Card */}
+             <div className={`absolute bottom-6 md:bottom-16 ${lang === 'ar' ? 'left-6 md:left-16' : 'right-6 md:right-16'} bg-white/10 backdrop-blur-3xl p-6 md:p-10 rounded-[28px] md:rounded-[48px] border border-white/20 hidden sm:block max-w-[280px] md:max-w-sm`}>
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-gold-500 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-900 mb-4 shadow-xl">
+                   <ShieldCheck size={24} />
                 </div>
-                <h4 className="text-white text-xl md:text-3xl font-black mb-2 md:mb-4">GOLDGEN Excellence</h4>
-                <p className="text-slate-300 text-[10px] md:text-sm font-medium leading-relaxed">Nous appliquons les standards de qualité les plus rigoureux du secteur BTP au Maroc.</p>
+                <h4 className="text-white text-lg md:text-3xl font-black mb-2">GOLDGEN Excellence</h4>
+                <p className="text-slate-300 text-[10px] md:text-sm font-medium leading-relaxed">Standards de qualité rigoureux du secteur BTP au Maroc.</p>
              </div>
           </div>
         </div>
