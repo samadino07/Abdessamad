@@ -62,13 +62,7 @@ const App: React.FC = () => {
     
     if (!url || !key) return null;
     try {
-      return createClient(url, key, {
-        realtime: {
-          params: {
-            eventsPerSecond: 20,
-          },
-        },
-      });
+      return createClient(url, key);
     } catch (e) {
       return null;
     }
@@ -93,7 +87,6 @@ const App: React.FC = () => {
         localStorage.setItem('goldgen_messages', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("Fetch Error:", err);
       const local = localStorage.getItem('goldgen_messages');
       if (local) setMessages(JSON.parse(local));
     }
@@ -105,55 +98,30 @@ const App: React.FC = () => {
     }
   }, [activePage, isAdminAuthenticated, fetchMessages]);
 
-  // Real-time listener configuration
   useEffect(() => {
-    if (!supabase) {
-      setRtStatus('NO_CONFIG');
-      return;
-    }
+    if (!supabase) return;
 
-    setRtStatus('CONNECTING...');
-    
     const channel = supabase
-      .channel('realtime-messages')
+      .channel('db-changes')
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'messages' 
-        },
+        { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          console.log('Real-time event received:', payload);
+          console.log('Realtime Payload:', payload);
           const time = new Date().toLocaleTimeString();
           setLastRtEvent(`${payload.eventType.toUpperCase()} à ${time}`);
           fetchMessages();
-          
-          // Trigger a subtle sound or vibration if admin is active
-          if (activePage === 'admin' && 'vibrate' in navigator) {
-            navigator.vibrate(200);
-          }
         }
       )
-      .subscribe((status, err) => {
-        console.log('Real-time subscription status:', status, err);
+      .subscribe((status) => {
         setRtStatus(status === 'SUBSCRIBED' ? 'ACTIF' : status.toUpperCase());
-        
-        if (status === 'SUBSCRIBED') {
-          fetchMessages();
-        }
-        
-        if (status === 'CHANNEL_ERROR') {
-          console.error('Real-time channel error. Check RLS and Publications.');
-          setLastRtEvent('ERREUR CANAL (Vérifiez RLS)');
-        }
+        if (status === 'SUBSCRIBED') fetchMessages();
       });
 
     return () => {
-      console.log('Cleaning up Real-time channel...');
       supabase.removeChannel(channel);
     };
-  }, [supabase, fetchMessages, activePage]);
+  }, [supabase, fetchMessages]);
 
   const addMessage = useCallback(async (msg: Omit<Message, 'id' | 'date' | 'status'>) => {
     const newMessage = { ...msg, date: new Date().toISOString(), status: 'new' };
@@ -162,9 +130,8 @@ const App: React.FC = () => {
       try {
         const { error } = await supabase.from('messages').insert([newMessage]);
         if (!error) return;
-        console.error("Cloud insert error:", error);
       } catch (e) {
-        console.error("Cloud connection failed:", e);
+        console.error(e);
       }
     }
 
@@ -173,6 +140,21 @@ const App: React.FC = () => {
     setMessages(updated as any);
     localStorage.setItem('goldgen_messages', JSON.stringify(updated));
   }, [supabase]);
+
+  const handleTestPropagation = async () => {
+    if (!supabase) return;
+    const testMsg = {
+      name: "TEST SYSTEM",
+      phone: "0000000000",
+      email: "test@goldgen.ma",
+      subject: "DIAGNOSTIC",
+      message: "Ceci est un test de propagation Realtime.",
+      date: new Date().toISOString(),
+      status: 'new' as const
+    };
+    await supabase.from('messages').insert([testMsg]);
+    setLastRtEvent("TEST ENVOYÉ...");
+  };
 
   const navigateTo = useCallback((page: ActivePage) => {
     setActivePage(page);
@@ -220,6 +202,7 @@ const App: React.FC = () => {
               messages={messages} 
               onClose={() => navigateTo('home')} 
               onRefresh={fetchMessages}
+              onTestPropagation={handleTestPropagation}
               rtStatus={rtStatus}
               lastRtEvent={lastRtEvent}
               onLogout={() => {
